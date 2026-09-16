@@ -1,0 +1,21 @@
+{
+  "cli": {
+    "version": ">= 13.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "node": "20.19.4",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "API_URL": "https://feed-sioux-falls-mobile.onrender.com"
+      }
+    }
+  }
+}
