@@ -1,0 +1,14 @@
+{
+  "name": "feed-sioux-falls",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix mobile",
+    "dev": "concurrently -k -n backend,mobile -c blue,green --handle-input --default-input-target=mobile \"npm:dev:backend\" \"npm:dev:mobile\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:mobile": "npm run start --prefix mobile",
+    "seed": "npm run seed --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
