@@ -12,6 +12,7 @@ const budgetRoutes = require('./routes/budget');
 const reportRoutes = require('./routes/reports');
 const donateRoutes = require('./routes/donate');
 const contactRoutes = require('./routes/contact');
+const surveyRoutes = require('./routes/survey');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/donate', donateRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/survey', surveyRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });

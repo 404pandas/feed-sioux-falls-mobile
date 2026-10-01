@@ -19,6 +19,18 @@ const donateLimiter = rateLimit({
   message: { error: 'Too many attempts. Please try again in a few minutes.' },
 });
 
+// Community survey - higher than the contact form because shelters, the
+// library, and pantry wifi put many real people behind one IP. Logged-in
+// staff entering surveys for people are skipped entirely (routes/survey.js
+// sets req.isStaff). express-rate-limit keeps IPs in memory only for the
+// window - they're never written to the database.
+const surveyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  skip: (req) => req.isStaff === true,
+  message: { error: 'Too many surveys sent from this connection. Please try again in a few minutes.' },
+});
+
 // Login attempts - protects PINs from being brute-forced.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -26,4 +38,4 @@ const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please wait a few minutes and try again.' },
 });
 
-module.exports = { contactLimiter, donateLimiter, loginLimiter };
+module.exports = { contactLimiter, donateLimiter, loginLimiter, surveyLimiter };
