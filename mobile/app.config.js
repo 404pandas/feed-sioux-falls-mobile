@@ -28,6 +28,10 @@ export default {
       // Kept in app config (not hardcoded in api client) so it's one place
       // to change when the backend URL changes.
       apiUrl: process.env.API_URL || "http://localhost:4000",
+      // The website's survey page (e.g. https://your-site.netlify.app/survey).
+      // Used for the survey's Share button and QR code - both stay hidden
+      // until this is set, rather than handing people a broken link.
+      surveyUrl: process.env.SURVEY_URL || null,
       stripePublishableKey:
         process.env.STRIPE_PUBLISHABLE_KEY || "pk_test_replace_me",
       eas: {

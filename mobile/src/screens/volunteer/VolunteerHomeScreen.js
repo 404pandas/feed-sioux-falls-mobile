@@ -19,21 +19,6 @@ function todayBounds() {
   return { start, end };
 }
 
-// Admins need these reachable at all times, not just before an event starts -
-// otherwise logging in on a day with an already-scheduled event (auto-resumed
-// below) strands them on the tally screen with no way back to the rest of
-// the admin tools.
-function AdminMenu({ navigation, style }) {
-  return (
-    <View style={style}>
-      <Button title="Inventory" variant="outline" onPress={() => navigation.navigate('Inventory')} style={{ marginBottom: spacing.sm }} />
-      <Button title="Budget" variant="outline" onPress={() => navigation.navigate('Budget')} style={{ marginBottom: spacing.sm }} />
-      <Button title="Reports" variant="outline" onPress={() => navigation.navigate('Reports')} style={{ marginBottom: spacing.sm }} />
-      <Button title="Past Events" variant="outline" onPress={() => navigation.navigate('EventsList')} />
-    </View>
-  );
-}
-
 export default function VolunteerHomeScreen({ navigation }) {
   const { user } = useAuth();
   const [activeEvent, setActiveEvent] = useState(null);
@@ -194,13 +179,14 @@ export default function VolunteerHomeScreen({ navigation }) {
           <Button title="Start Distribution Event" onPress={startEvent} loading={starting} style={{ marginTop: spacing.md }} />
         </Card>
 
-        {user?.role === 'admin' && <AdminMenu navigation={navigation} style={{ marginTop: spacing.xl }} />}
       </Screen>
     );
   }
 
   return (
-    <Screen scroll={user?.role === 'admin'}>
+    // Always scrolls now: on smaller phones (and with large text turned on)
+    // the bottom buttons used to be pushed off-screen for volunteers.
+    <Screen>
       <View style={{ flex: 1, justifyContent: 'space-between' }}>
         <View>
           <Text style={typography.h2}>Today's Distribution</Text>
@@ -214,8 +200,8 @@ export default function VolunteerHomeScreen({ navigation }) {
           )}
         </View>
 
-        <View style={{ alignItems: 'center' }}>
-          <Text style={typography.tallyNumber}>{totalServed}</Text>
+        <View style={{ alignItems: 'center', marginVertical: spacing.lg }} accessibilityLiveRegion="polite">
+          <Text style={typography.tallyNumber} accessibilityLabel={`${totalServed} people served so far`}>{totalServed}</Text>
           <Text style={typography.bodyMuted}>people served so far</Text>
         </View>
 
@@ -236,18 +222,22 @@ export default function VolunteerHomeScreen({ navigation }) {
             ))}
           </View>
           <Button
-            title="-1 (fix a mistap)"
+            title="−1 (fix a mistap)"
             variant="outline"
+            textColor={colors.danger}
             disabled={totalServed <= 0}
             onPress={() => tap(-1)}
             style={{ marginBottom: spacing.md, borderColor: colors.danger }}
           />
-          <Button
-            title="Adjust Inventory"
-            variant="outline"
-            onPress={() => navigation.navigate('QuickStock')}
-            style={{ marginBottom: user?.role === 'admin' ? spacing.sm : 0 }}
-          />
+          <View style={{ flexDirection: 'row', marginBottom: spacing.sm }}>
+            <Button
+              title="Adjust Stock"
+              variant="outline"
+              onPress={() => navigation.navigate('Stock')}
+              style={{ flex: 1, marginRight: spacing.sm }}
+            />
+            <Button title="Survey" variant="outline" onPress={() => navigation.navigate('Survey')} style={{ flex: 1 }} />
+          </View>
           {user?.role === 'admin' && (
             <Button
               title="End Event & Add Notes"
@@ -258,7 +248,6 @@ export default function VolunteerHomeScreen({ navigation }) {
           )}
         </View>
 
-        {user?.role === 'admin' && <AdminMenu navigation={navigation} style={{ marginTop: spacing.lg }} />}
       </View>
     </Screen>
   );

@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Pressable, Text, Alert, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
@@ -19,8 +21,13 @@ import BudgetScreen from './src/screens/admin/BudgetScreen';
 import ReportBuilderScreen from './src/screens/admin/ReportBuilderScreen';
 import EventsListScreen from './src/screens/admin/EventsListScreen';
 import EventDetailScreen from './src/screens/admin/EventDetailScreen';
+import AdminHomeScreen from './src/screens/admin/AdminHomeScreen';
+import SurveyResultsScreen from './src/screens/admin/SurveyResultsScreen';
+import SurveyHubScreen from './src/screens/volunteer/SurveyHubScreen';
+import SurveyScreen from './src/screens/shared/SurveyScreen';
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 const screenOptions = {
   headerStyle: { backgroundColor: colors.primary },
@@ -52,30 +59,82 @@ const loggedInScreenOptions = {
   headerRight: () => <HeaderLogoutButton />,
 };
 
+// The survey sets its own header (title in the chosen language + the
+// Quick Exit button in place of Log Out). The back button just says "Close".
+const surveyScreenOptions = {
+  ...screenOptions,
+  title: 'Survey',
+  headerBackTitle: 'Close',
+  headerBackTitleVisible: true,
+};
+
 // Shown before anyone logs in, and while donating/contacting as a guest.
 function GuestStack() {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="Landing" component={LandingScreen} options={{ title: 'Feed Sioux Falls' }} />
       <Stack.Screen name="GuestHome" component={GuestHomeScreen} options={{ title: 'Support Us' }} />
+      <Stack.Screen name="Survey" component={SurveyScreen} options={surveyScreenOptions} />
     </Stack.Navigator>
   );
 }
 
-// Shown once a volunteer/admin is logged in. Admin-only screens are reachable
-// here too, but the buttons that link to them are hidden from volunteers in
-// VolunteerHomeScreen - the actual enforcement happens server-side
-// (requireStaff/requireAdmin), this is just about not showing dead ends.
+// The bottom tab bar for volunteers and admins. Everything someone needs
+// during outreach is one tap away from anywhere:
+//   Today  - the people-served counter (starts/resumes today's event)
+//   Stock  - quick +/- inventory while handing things out
+//   Survey - start the community survey, share it, see results (admin)
+//   Admin  - inventory setup, budget, reports, past events (admins only)
+// Before this, admin tools were a stack of buttons under the tally counter
+// and Adjust Inventory was a button you had to scroll to.
+const TAB_ICONS = {
+  Today: 'people',
+  Stock: 'cube',
+  SurveyHub: 'clipboard',
+  AdminHome: 'settings',
+};
+
+function StaffTabs() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        ...loggedInScreenOptions,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border },
+        tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
+        tabBarIcon: ({ color, size, focused }) => (
+          <Ionicons name={focused ? TAB_ICONS[route.name] : `${TAB_ICONS[route.name]}-outline`} size={size} color={color} />
+        ),
+        sceneContainerStyle: { backgroundColor: colors.background },
+      })}
+    >
+      <Tab.Screen name="Today" component={VolunteerHomeScreen} options={{ title: 'Today' }} />
+      <Tab.Screen name="Stock" component={QuickStockScreen} options={{ title: 'Stock', headerTitle: 'Adjust Inventory' }} />
+      <Tab.Screen name="SurveyHub" component={SurveyHubScreen} options={{ title: 'Survey' }} />
+      {isAdmin && <Tab.Screen name="AdminHome" component={AdminHomeScreen} options={{ title: 'Admin' }} />}
+    </Tab.Navigator>
+  );
+}
+
+// Tabs sit at the bottom of this stack; detail screens and the survey push
+// on top (full-screen, no tab bar). Admin-only screens are registered for
+// everyone on staff, but only admins get links to them - the real
+// enforcement is server-side (requireStaff/requireAdmin), this is about not
+// showing dead ends.
 function StaffStack() {
   return (
     <Stack.Navigator screenOptions={loggedInScreenOptions}>
-      <Stack.Screen name="VolunteerHome" component={VolunteerHomeScreen} options={{ title: 'Feed Sioux Falls' }} />
-      <Stack.Screen name="QuickStock" component={QuickStockScreen} options={{ title: 'Adjust Inventory' }} />
+      <Stack.Screen name="Tabs" component={StaffTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="Survey" component={SurveyScreen} options={surveyScreenOptions} />
       <Stack.Screen name="Inventory" component={InventoryScreen} options={{ title: 'Inventory' }} />
       <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
       <Stack.Screen name="Reports" component={ReportBuilderScreen} options={{ title: 'Reports' }} />
       <Stack.Screen name="EventsList" component={EventsListScreen} options={{ title: 'Past Events' }} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Event Details' }} />
+      <Stack.Screen name="SurveyResults" component={SurveyResultsScreen} options={{ title: 'Survey Results' }} />
     </Stack.Navigator>
   );
 }
@@ -88,6 +147,7 @@ function NeighborStack() {
   return (
     <Stack.Navigator screenOptions={loggedInScreenOptions}>
       <Stack.Screen name="NeighborHome" component={NeighborHomeScreen} options={{ title: 'Feed Sioux Falls' }} />
+      <Stack.Screen name="Survey" component={SurveyScreen} options={surveyScreenOptions} />
     </Stack.Navigator>
   );
 }
@@ -117,7 +177,9 @@ export default function App() {
     <SafeAreaProvider>
       <StripeProvider publishableKey={stripeKey} merchantIdentifier="merchant.com.feedsiouxfalls.app">
         <AuthProvider>
-          <StatusBar style="dark" />
+          {/* Light icons: every screen has the dark green header behind the status
+              bar, so dark icons (the old setting) were nearly invisible. */}
+          <StatusBar style="light" />
           <RootNavigator />
         </AuthProvider>
       </StripeProvider>

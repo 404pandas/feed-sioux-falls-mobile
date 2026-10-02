@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
+import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
@@ -92,14 +93,14 @@ export default function EventDetailScreen({ route, navigation }) {
 
   if (loading || !event) {
     return (
-      <View style={{ flex: 1, padding: spacing.lg, backgroundColor: colors.background }}>
+      <Screen>
         <Text style={typography.body}>Loading…</Text>
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg }}>
+    <Screen>
       <Text style={typography.h1}>{formatDate(event.date)}</Text>
 
       <Card style={{ marginTop: spacing.lg, marginBottom: spacing.sm, alignItems: 'center' }}>
@@ -139,7 +140,7 @@ export default function EventDetailScreen({ route, navigation }) {
       />
 
       <Button title="Save" onPress={handleSave} loading={saving} style={{ marginTop: spacing.lg }} />
-    </ScrollView>
+    </Screen>
   );
 }
 

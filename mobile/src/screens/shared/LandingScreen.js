@@ -14,9 +14,20 @@ export default function LandingScreen({ navigation }) {
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api.getNames().then(setNames).catch(() => setNames([]));
-  }, []);
+  const [namesError, setNamesError] = useState(false);
+
+  function loadNames() {
+    setNamesError(false);
+    api
+      .getNames()
+      .then(setNames)
+      .catch(() => {
+        setNames([]);
+        setNamesError(true);
+      });
+  }
+
+  useEffect(loadNames, []);
 
   async function handleLogin() {
     if (!selectedUser || !pin) return;
@@ -39,24 +50,47 @@ export default function LandingScreen({ navigation }) {
         Bridging people who have a little extra with people who need a little extra.
       </Text>
 
+      <Button
+        title="Take the Community Survey · Encuesta"
+        variant="accent"
+        onPress={() => navigation.navigate('Survey')}
+        style={{ marginBottom: spacing.xs }}
+      />
+      <Text style={[typography.bodyMuted, { marginBottom: spacing.lg }]}>
+        About 3 minutes. Anonymous - every question is optional. English or Español.
+      </Text>
+
       <Card style={{ marginBottom: spacing.lg }}>
         <Text style={[typography.h2, { marginBottom: spacing.md }]}>Volunteer / Admin Login</Text>
 
         <Text style={[typography.bodyMuted, { marginBottom: spacing.sm }]}>Select your name</Text>
+        {namesError && (
+          <View style={{ marginBottom: spacing.sm }}>
+            <Text style={[typography.body, { marginBottom: spacing.sm }]}>
+              Couldn't load the volunteer list. Check your connection.
+            </Text>
+            <Button title="Try Again" variant="outline" onPress={loadNames} />
+          </View>
+        )}
         <FlatList
           data={names}
           keyExtractor={(item) => item._id}
           scrollEnabled={false}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => setSelectedUser(item)}
+              onPress={() => {
+                setSelectedUser(item);
+                setPin('');
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectedUser?._id === item._id }}
               style={[
                 styles.nameRow,
                 selectedUser?._id === item._id && styles.nameRowSelected,
               ]}
             >
-              <Text style={typography.body}>{item.name}</Text>
-              <Text style={typography.bodyMuted}>{item.role}</Text>
+              <Text style={[typography.body, { flexShrink: 1, marginRight: spacing.sm }]}>{item.name}</Text>
+              <Text style={typography.bodyMuted}>{item.role ? item.role[0].toUpperCase() + item.role.slice(1) : ''}</Text>
             </Pressable>
           )}
         />
@@ -72,6 +106,9 @@ export default function LandingScreen({ navigation }) {
               maxLength={6}
               style={styles.pinInput}
               placeholder="••••"
+              autoFocus
+              onSubmitEditing={handleLogin}
+              returnKeyType="go"
             />
             <Button title="Log In" onPress={handleLogin} loading={loading} disabled={!pin} style={{ marginTop: spacing.md }} />
           </View>

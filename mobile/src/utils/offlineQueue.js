@@ -5,7 +5,7 @@ import { api } from '../api/client';
 const QUEUE_KEY = 'fsf_offline_queue';
 
 // Each queued action looks like: { id, type, payload, timestamp }
-// type is one of: 'tally' | 'adjustStock'
+// type is one of: 'tally' | 'adjustStock' | 'survey'
 // A local id (timestamp + random) is included so retries never double-count -
 // the backend doesn't dedupe, but this file only ever sends each queued item
 // once and removes it immediately after a confirmed successful response.
@@ -37,6 +37,12 @@ function runSerially(task) {
   return result;
 }
 
+// 4xx responses other than "log in again" (401), "timed out" (408) and
+// "slow down" (429) mean the request itself will never be accepted.
+function isPermanentFailure(err) {
+  return typeof err.status === 'number' && err.status >= 400 && err.status < 500 && ![401, 408, 429].includes(err.status);
+}
+
 async function attemptSync(startingQueue) {
   const net = await NetInfo.fetch();
   if (!net.isConnected) return { synced: 0, remaining: startingQueue.length };
@@ -55,15 +61,26 @@ async function attemptSync(startingQueue) {
         });
       } else if (item.type === 'adjustStock') {
         await api.adjustStock(item.payload.itemId, item.payload);
+      } else if (item.type === 'survey') {
+        await api.submitSurvey(item.payload);
       }
 
       queue = queue.filter((q) => q.id !== item.id);
       await saveQueue(queue);
       syncedCount += 1;
     } catch (err) {
-      // Leave it (and everything after it) queued and stop - retry the
-      // whole remaining queue next time rather than skipping ahead and
-      // risking out-of-order writes.
+      if (isPermanentFailure(err)) {
+        // The server looked at this one and said no for good (bad data, or
+        // the item/event was deleted). Retrying can never work, and leaving
+        // it at the front of the queue used to block every tap behind it
+        // forever - so drop just this one and keep going.
+        queue = queue.filter((q) => q.id !== item.id);
+        await saveQueue(queue);
+        continue;
+      }
+      // No signal, server down, or logged out: leave it (and everything
+      // after it) queued and stop - retry the whole remaining queue next
+      // time rather than skipping ahead and risking out-of-order writes.
       break;
     }
   }

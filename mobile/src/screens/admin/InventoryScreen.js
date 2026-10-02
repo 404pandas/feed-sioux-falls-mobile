@@ -87,6 +87,12 @@ export default function InventoryScreen() {
       return;
     }
 
+    const numbers = [form.unitCost, form.currentStock, form.lowThreshold].filter((v) => v !== '');
+    if (numbers.some((v) => Number.isNaN(Number(v)) || Number(v) < 0)) {
+      Alert.alert('Check the numbers', 'Cost, stock, and threshold need to be numbers of 0 or more.');
+      return;
+    }
+
     const payload = {
       name: form.name.trim(),
       category: form.category,
@@ -148,6 +154,57 @@ export default function InventoryScreen() {
     }
   }
 
+  // The add/edit form gets its own scrolling screen. It used to sit inside
+  // the non-scrolling list layout, so on most phones the lower fields and
+  // the Save button were cut off with no way to reach them.
+  if (formVisible) {
+    return (
+      <Screen>
+        <Card style={{ marginBottom: spacing.md }}>
+          <Text style={[typography.h2, { marginBottom: spacing.md }]}>
+            {editingItem ? `Edit "${editingItem.name}"` : 'Add Item'}
+          </Text>
+
+          <Text style={styles.label}>Name</Text>
+          <TextInput value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} style={styles.input} placeholder="Bar soap (individually wrapped)" />
+
+          <Text style={styles.label}>Category</Text>
+          <View style={{ flexDirection: 'row', marginBottom: spacing.sm }}>
+            {CATEGORIES.map((c) => (
+              <Button
+                key={c}
+                title={c[0].toUpperCase() + c.slice(1)}
+                variant={form.category === c ? 'primary' : 'outline'}
+                onPress={() => setForm((f) => ({ ...f, category: c }))}
+                style={{ flex: 1, marginRight: c !== CATEGORIES[CATEGORIES.length - 1] ? spacing.xs : 0, minHeight: 40 }}
+              />
+            ))}
+          </View>
+
+          <Text style={styles.label}>Unit type (e.g. "bar", "pair", "bottle")</Text>
+          <TextInput value={form.unitType} onChangeText={(v) => setForm((f) => ({ ...f, unitType: v }))} style={styles.input} placeholder="bar" />
+
+          <Text style={styles.label}>Unit cost ($)</Text>
+          <TextInput value={form.unitCost} onChangeText={(v) => setForm((f) => ({ ...f, unitCost: v }))} style={styles.input} keyboardType="decimal-pad" placeholder="0.11" />
+
+          <Text style={styles.label}>Current stock</Text>
+          <TextInput value={form.currentStock} onChangeText={(v) => setForm((f) => ({ ...f, currentStock: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
+
+          <Text style={styles.label}>Low stock threshold</Text>
+          <TextInput value={form.lowThreshold} onChangeText={(v) => setForm((f) => ({ ...f, lowThreshold: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
+
+          <Text style={styles.label}>Amazon link (optional)</Text>
+          <TextInput value={form.amazonLink} onChangeText={(v) => setForm((f) => ({ ...f, amazonLink: v }))} style={styles.input} placeholder="https://www.amazon.com/..." autoCapitalize="none" autoCorrect={false} keyboardType="url" />
+
+          <View style={{ flexDirection: 'row', marginTop: spacing.md }}>
+            <Button title="Cancel" variant="outline" onPress={closeForm} style={{ flex: 1, marginRight: spacing.sm }} />
+            <Button title="Save" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
+          </View>
+        </Card>
+      </Screen>
+    );
+  }
+
   return (
     <Screen scroll={false}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
@@ -156,117 +213,78 @@ export default function InventoryScreen() {
           title={showLowStockOnly ? 'Show All' : 'Low Stock Only'}
           variant="outline"
           onPress={() => setShowLowStockOnly((v) => !v)}
+          style={{ minHeight: 40, paddingHorizontal: spacing.md }}
         />
       </View>
 
-      {formVisible ? (
-        <View style={{ flex: 1 }}>
-          <Card style={{ marginBottom: spacing.md }}>
-            <Text style={[typography.h2, { marginBottom: spacing.md }]}>
-              {editingItem ? `Edit "${editingItem.name}"` : 'Add Item'}
-            </Text>
+      {/* Search and filters scroll with the list. When they sat above it,
+          they took up most of a small phone's screen and the list itself
+          was squeezed into a few lines at the bottom. */}
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item._id}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        ListHeaderComponent={
+          <>
+            <Button title="+ Add Item" onPress={openCreateForm} style={{ marginBottom: spacing.md }} />
 
-            <Text style={styles.label}>Name</Text>
-            <TextInput value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} style={styles.input} placeholder="Bar soap (individually wrapped)" />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              style={[styles.input, { marginBottom: spacing.sm }]}
+              placeholder="Search items…"
+              autoCapitalize="none"
+            />
 
-            <Text style={styles.label}>Category</Text>
-            <View style={{ flexDirection: 'row', marginBottom: spacing.sm }}>
-              {CATEGORIES.map((c) => (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md }}>
+              {FILTER_CATEGORIES.map((c) => (
                 <Button
                   key={c}
-                  title={c}
-                  variant={form.category === c ? 'primary' : 'outline'}
-                  onPress={() => setForm((f) => ({ ...f, category: c }))}
-                  style={{ flex: 1, marginRight: c !== CATEGORIES[CATEGORIES.length - 1] ? spacing.xs : 0, minHeight: 40 }}
+                  title={c === 'all' ? 'All' : c[0].toUpperCase() + c.slice(1)}
+                  variant={categoryFilter === c ? 'primary' : 'outline'}
+                  onPress={() => setCategoryFilter(c)}
+                  style={{ marginRight: spacing.xs, marginBottom: spacing.xs, paddingHorizontal: spacing.md, minHeight: 40 }}
                 />
               ))}
             </View>
+          </>
+        }
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+        contentContainerStyle={{ paddingBottom: spacing.xl }}
+        renderItem={({ item }) => {
+          const isLow = item.currentStock <= item.lowThreshold;
+          return (
+            <Card style={{ marginBottom: spacing.sm, borderColor: isLow ? colors.danger : colors.border }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={[typography.h2, { flexShrink: 1, marginRight: spacing.sm }]}>{item.name}</Text>
+                {isLow && <Text style={{ color: colors.danger, fontWeight: '600' }}>LOW</Text>}
+              </View>
+              <Text style={typography.bodyMuted}>
+                {item.currentStock} {item.unitType}
+                {item.currentStock === 1 ? '' : 's'} in stock · low threshold {item.lowThreshold}
+              </Text>
+              <Text style={typography.bodyMuted}>${item.unitCost.toFixed(2)} / {item.unitType}</Text>
 
-            <Text style={styles.label}>Unit type (e.g. "bar", "pair", "bottle")</Text>
-            <TextInput value={form.unitType} onChangeText={(v) => setForm((f) => ({ ...f, unitType: v }))} style={styles.input} placeholder="bar" />
+              {isLow && item.amazonLink && (
+                <Button title="Buy Now on Amazon" variant="accent" onPress={() => openBuyNow(item)} style={{ marginTop: spacing.sm }} />
+              )}
 
-            <Text style={styles.label}>Unit cost ($)</Text>
-            <TextInput value={form.unitCost} onChangeText={(v) => setForm((f) => ({ ...f, unitCost: v }))} style={styles.input} keyboardType="decimal-pad" placeholder="0.11" />
-
-            <Text style={styles.label}>Current stock</Text>
-            <TextInput value={form.currentStock} onChangeText={(v) => setForm((f) => ({ ...f, currentStock: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
-
-            <Text style={styles.label}>Low stock threshold</Text>
-            <TextInput value={form.lowThreshold} onChangeText={(v) => setForm((f) => ({ ...f, lowThreshold: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
-
-            <Text style={styles.label}>Amazon link (optional)</Text>
-            <TextInput value={form.amazonLink} onChangeText={(v) => setForm((f) => ({ ...f, amazonLink: v }))} style={styles.input} placeholder="https://www.amazon.com/..." autoCapitalize="none" />
-
-            <View style={{ flexDirection: 'row', marginTop: spacing.md }}>
-              <Button title="Cancel" variant="outline" onPress={closeForm} style={{ flex: 1, marginRight: spacing.sm }} />
-              <Button title="Save" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
-            </View>
-          </Card>
-        </View>
-      ) : (
-        <>
-          <Button title="+ Add Item" onPress={openCreateForm} style={{ marginBottom: spacing.md }} />
-
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            style={[styles.input, { marginBottom: spacing.sm }]}
-            placeholder="Search items…"
-            autoCapitalize="none"
-          />
-
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md }}>
-            {FILTER_CATEGORIES.map((c) => (
-              <Button
-                key={c}
-                title={c === 'all' ? 'All' : c[0].toUpperCase() + c.slice(1)}
-                variant={categoryFilter === c ? 'primary' : 'outline'}
-                onPress={() => setCategoryFilter(c)}
-                style={{ marginRight: spacing.xs, marginBottom: spacing.xs, paddingHorizontal: spacing.md, minHeight: 40 }}
-              />
-            ))}
-          </View>
-
-          <FlatList
-            data={filteredItems}
-            keyExtractor={(item) => item._id}
-            refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-            contentContainerStyle={{ paddingBottom: spacing.xl }}
-            renderItem={({ item }) => {
-              const isLow = item.currentStock <= item.lowThreshold;
-              return (
-                <Card style={{ marginBottom: spacing.sm, borderColor: isLow ? colors.danger : colors.border }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={typography.h2}>{item.name}</Text>
-                    {isLow && <Text style={{ color: colors.danger, fontWeight: '600' }}>LOW</Text>}
-                  </View>
-                  <Text style={typography.bodyMuted}>
-                    {item.currentStock} {item.unitType}
-                    {item.currentStock === 1 ? '' : 's'} in stock · low threshold {item.lowThreshold}
-                  </Text>
-                  <Text style={typography.bodyMuted}>${item.unitCost.toFixed(2)} / {item.unitType}</Text>
-
-                  {isLow && item.amazonLink && (
-                    <Button title="Buy Now on Amazon" variant="accent" onPress={() => openBuyNow(item)} style={{ marginTop: spacing.sm }} />
-                  )}
-
-                  <View style={{ flexDirection: 'row', marginTop: spacing.sm }}>
-                    <Button title="Edit" variant="outline" onPress={() => openEditForm(item)} style={{ flex: 1, marginRight: spacing.sm, minHeight: 40 }} />
-                    <Button title="Delete" variant="outline" onPress={() => confirmDelete(item)} style={{ flex: 1, minHeight: 40, borderColor: colors.danger }} />
-                  </View>
-                </Card>
-              );
-            }}
-            ListEmptyComponent={
-              !loading && (
-                <Text style={typography.bodyMuted}>
-                  {items.length === 0 ? 'No items found.' : 'No items match your search.'}
-                </Text>
-              )
-            }
-          />
-        </>
-      )}
+              <View style={{ flexDirection: 'row', marginTop: spacing.sm }}>
+                <Button title="Edit" variant="outline" onPress={() => openEditForm(item)} style={{ flex: 1, marginRight: spacing.sm, minHeight: 40 }} />
+                <Button title="Delete" variant="outline" onPress={() => confirmDelete(item)} textColor={colors.danger} style={{ flex: 1, minHeight: 40, borderColor: colors.danger }} />
+              </View>
+            </Card>
+          );
+        }}
+        ListEmptyComponent={
+          !loading && (
+            <Text style={typography.bodyMuted}>
+              {items.length === 0 ? 'No items found.' : 'No items match your search.'}
+            </Text>
+          )
+        }
+      />
     </Screen>
   );
 }
