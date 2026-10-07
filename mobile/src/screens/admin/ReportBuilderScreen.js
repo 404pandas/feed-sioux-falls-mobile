@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, ScrollView, Alert, Dimensions, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Alert, Dimensions, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import ViewShot from 'react-native-view-shot';
@@ -7,9 +7,39 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import Card from '../../components/Card';
+import Screen from '../../components/Screen';
 import Button from '../../components/Button';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { api } from '../../api/client';
+import { SECTIONS as SURVEY_SECTIONS, PREFER_NOT } from '../../survey/questions';
+import { getLanguage } from '../../survey/languages';
+
+const surveyStrings = getLanguage('en').strings;
+
+// The survey questions that matter most to funders and City Council - the
+// report shows the top answers for each, as counts and percentages only.
+const SURVEY_HIGHLIGHTS = ['slept_last_night', 'housing_length', 'applies', 'photo_id', 'services_barriers', 'causes'];
+
+function surveyHighlights(summary) {
+  if (!summary || !summary.total) return [];
+  const questions = SURVEY_SECTIONS.flatMap((sec) => sec.questions);
+  return SURVEY_HIGHLIGHTS.map((id) => {
+    const q = questions.find((x) => x.id === id);
+    const result = summary.questions?.[id];
+    if (!q || !result || !result.answered) return null;
+    const copy = surveyStrings.q[id];
+    const rows = Object.entries(result.counts)
+      .filter(([code]) => code !== PREFER_NOT)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([code, count]) => ({
+        label: copy.options[code] || code,
+        count,
+        pct: Math.round((count / result.answered) * 100),
+      }));
+    return { id, label: copy.label, answered: result.answered, rows };
+  }).filter(Boolean);
+}
 
 const CHART_WIDTH = Dimensions.get('window').width - spacing.lg * 2 - spacing.md * 2;
 
@@ -47,6 +77,7 @@ const SECTIONS = [
   { key: 'spendByCategory', label: 'Spending by Category' },
   { key: 'topItems', label: 'Most Distributed Items' },
   { key: 'inventory', label: 'Current Inventory Snapshot' },
+  { key: 'survey', label: 'Community Survey Highlights' },
 ];
 
 function presetRange(key) {
@@ -81,12 +112,12 @@ function buildReportFilename() {
 // A simple horizontal-bar row for lists where labels are too long/plentiful
 // for a squeezed chart-kit x-axis (item names, inventory) - real chart
 // components handle short/numeric labels well, this handles long text well.
-function BarRow({ label, value, max, color, sublabel }) {
-  const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
+function BarRow({ label, value, max, color, sublabel, pctOverride }) {
+  const pct = pctOverride != null ? Math.max(4, pctOverride) : max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
   return (
     <View style={{ marginBottom: spacing.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={typography.body} numberOfLines={1}>{label}</Text>
+        <Text style={[typography.body, { flexShrink: 1, marginRight: spacing.sm }]} numberOfLines={1}>{label}</Text>
         <Text style={typography.bodyMuted}>{value}</Text>
       </View>
       {!!sublabel && <Text style={typography.bodyMuted}>{sublabel}</Text>}
@@ -145,8 +176,12 @@ export default function ReportBuilderScreen() {
     }
     setLoading(true);
     try {
-      const data = await api.getCustomReport({ start: start.toISOString(), end: end.toISOString(), groupBy });
-      setReport(data);
+      const [data, survey] = await Promise.all([
+        api.getCustomReport({ start: start.toISOString(), end: end.toISOString(), groupBy }),
+        // Survey totals are a bonus - if they can't load, still build the report.
+        api.getSurveySummary({ start: start.toISOString(), end: end.toISOString() }).catch(() => null),
+      ]);
+      setReport({ ...data, surveySummary: survey });
       setMode('preview');
     } catch (err) {
       Alert.alert('Could not generate report', err.message);
@@ -189,7 +224,7 @@ export default function ReportBuilderScreen() {
 
   if (mode === 'preview' && report) {
     return (
-      <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg }}>
+      <Screen>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
           <Text style={typography.h1}>Report Preview</Text>
           <Button title="Edit" variant="outline" onPress={() => setMode('builder')} style={{ minHeight: 40, paddingHorizontal: spacing.md }} />
@@ -304,6 +339,24 @@ export default function ReportBuilderScreen() {
           </ChartSection>
         )}
 
+        {sections.survey && report.surveySummary?.total > 0 && (
+          <Card style={{ marginBottom: spacing.md }}>
+            <Text style={[typography.h2, { marginBottom: spacing.xs }]}>Community Survey Highlights</Text>
+            <Text style={[typography.bodyMuted, { marginBottom: spacing.sm }]}>
+              {report.surveySummary.total} anonymous surveys in this period. Top answers shown; percentages are of
+              people who answered that question.
+            </Text>
+            {surveyHighlights(report.surveySummary).map((h) => (
+              <View key={h.id} style={{ marginBottom: spacing.md }}>
+                <Text style={[typography.body, { fontWeight: '600' }]}>{h.label}</Text>
+                {h.rows.map((r) => (
+                  <BarRow key={r.label} label={r.label} value={`${r.count} (${r.pct}%)`} max={100} pctOverride={r.pct} color={colors.secondary} />
+                ))}
+              </View>
+            ))}
+          </Card>
+        )}
+
         {!!narrative.trim() && (
           <Card style={{ marginBottom: spacing.md }}>
             <Text style={[typography.h2, { marginBottom: spacing.sm }]}>Notes</Text>
@@ -316,12 +369,12 @@ export default function ReportBuilderScreen() {
         </Text>
 
         <Button title="Download / Share PDF" onPress={handleExportPdf} loading={exporting} />
-      </ScrollView>
+      </Screen>
     );
   }
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={{ padding: spacing.lg }}>
+    <Screen>
       <Text style={[typography.h1, { marginBottom: spacing.md }]}>Build a Report</Text>
 
       <Text style={styles.label}>Date Range</Text>
@@ -388,7 +441,7 @@ export default function ReportBuilderScreen() {
       />
 
       <Button title="Generate Preview" onPress={handleGenerate} loading={loading} />
-    </ScrollView>
+    </Screen>
   );
 }
 
@@ -424,12 +477,23 @@ function SummaryGrid({ summary }) {
         {stats.map((s) => (
           <View key={s.label} style={{ width: '50%', marginBottom: spacing.md }}>
             <Text style={typography.bodyMuted}>{s.label}</Text>
-            <Text style={typography.h1}>{s.value}</Text>
+            <Text style={[typography.h1, { fontSize: 22 }]} adjustsFontSizeToFit numberOfLines={1}>{s.value}</Text>
           </View>
         ))}
       </View>
     </Card>
   );
+}
+
+// Anything typed by a person (item names, notes) goes through this before
+// it's put in the PDF's HTML - an "&" or "<" in a note used to garble or
+// cut off the rest of the report.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function buildReportHtml({ report, sections, narrative, images, start, end, groupBy }) {
@@ -490,20 +554,26 @@ function buildReportHtml({ report, sections, narrative, images, start, end, grou
         ${sections.spendByCategory ? chartImg('spendByCategory', 'Spending by Category') : ''}
 
         ${sections.topItems ? table('Most Distributed Items', report.topItems, [
-          { label: 'Item', value: (r) => r.name },
+          { label: 'Item', value: (r) => escapeHtml(r.name) },
           { label: 'Quantity Distributed', value: (r) => r.quantityDistributed },
         ]) : ''}
 
         ${sections.inventory ? table('Current Inventory Snapshot', report.inventorySnapshot, [
-          { label: 'Item', value: (r) => r.name },
-          { label: 'Category', value: (r) => r.category },
-          { label: 'Current Stock', value: (r) => `${r.currentStock} ${r.unitType}${r.currentStock === 1 ? '' : 's'}` },
+          { label: 'Item', value: (r) => escapeHtml(r.name) },
+          { label: 'Category', value: (r) => escapeHtml(r.category) },
+          { label: 'Current Stock', value: (r) => `${r.currentStock} ${escapeHtml(r.unitType)}${r.currentStock === 1 ? '' : 's'}` },
           { label: 'Status', value: (r) => (r.isLow ? 'LOW' : 'OK') },
         ]) : ''}
 
-        ${narrative.trim() ? `<div class="section"><h2>Notes</h2><p>${narrative.trim().replace(/\n/g, '<br/>')}</p></div>` : ''}
+        ${sections.survey && report.surveySummary?.total > 0 ? `<div class="section"><h2>Community Survey Highlights</h2>
+          <p class="subtitle">${report.surveySummary.total} anonymous surveys in this period. Top answers shown; percentages are of people who answered each question. Individual answers are never shared.</p>
+          ${surveyHighlights(report.surveySummary).map((h) => `<h3 style="font-size:14px;margin:12px 0 4px;">${escapeHtml(h.label)} <span style="color:#6B6355;font-weight:400;">(${h.answered} answered)</span></h3>
+            <table>${h.rows.map((r) => `<tr><td>${escapeHtml(r.label)}</td><td style="width:90px;">${r.count} (${r.pct}%)</td></tr>`).join('')}</table>`).join('')}
+        </div>` : ''}
 
-        <div class="note">${report.methodologyNote}</div>
+        ${narrative.trim() ? `<div class="section"><h2>Notes</h2><p>${escapeHtml(narrative.trim()).replace(/\n/g, '<br/>')}</p></div>` : ''}
+
+        <div class="note">${escapeHtml(report.methodologyNote)}</div>
       </body>
     </html>
   `;

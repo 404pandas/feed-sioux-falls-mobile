@@ -5,6 +5,7 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { api } from '../../api/client';
+import { queueAction, getQueueSize } from '../../utils/offlineQueue';
 
 const STEPS = [1, 10, 20];
 const CATEGORIES = ['all', 'hygiene', 'winter', 'other'];
@@ -18,7 +19,7 @@ const CATEGORIES = ['all', 'hygiene', 'winter', 'other'];
 export default function QuickStockScreen() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState(null);
+  const [pendingSync, setPendingSync] = useState(0);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
 
@@ -44,65 +45,83 @@ export default function QuickStockScreen() {
 
   useEffect(() => {
     load();
+    getQueueSize().then(setPendingSync);
   }, [load]);
 
+  // Goes through the offline queue (same as tally taps), so handing out
+  // supplies keeps working with no signal - the change shows right away and
+  // syncs when the phone is back online. It used to call the server
+  // directly, so every tap failed with an error out in the field.
   async function adjust(item, delta) {
-    setBusyId(item._id);
+    setItems((prev) =>
+      prev.map((i) => (i._id === item._id ? { ...i, currentStock: Math.max(0, i.currentStock + delta) } : i))
+    );
     try {
       // Positive = donation received (not a purchase, so 'adjustment' not
       // 'restock'). Negative = handed out during distribution, tagged
       // 'distributed' so it still feeds the demand forecast.
-      const { item: updated } = await api.adjustStock(item._id, {
+      await queueAction('adjustStock', {
+        itemId: item._id,
         type: delta > 0 ? 'adjustment' : 'distributed',
         quantityDelta: delta,
       });
-      setItems((prev) => prev.map((i) => (i._id === updated._id ? updated : i)));
     } catch (err) {
-      Alert.alert('Could not update stock', err.message);
+      Alert.alert('Could not save that change', err.message);
     } finally {
-      setBusyId(null);
+      setPendingSync(await getQueueSize());
     }
   }
 
   return (
     <Screen scroll={false}>
-      <Text style={[typography.h1, { marginBottom: spacing.xs }]}>Adjust Inventory</Text>
-      <Text style={[typography.bodyMuted, { marginBottom: spacing.md }]}>
-        + for supplies donated, − for supplies handed out.
-      </Text>
-
-      <TextInput
-        value={search}
-        onChangeText={setSearch}
-        style={[styles.input, { marginBottom: spacing.sm }]}
-        placeholder="Search items…"
-        autoCapitalize="none"
-      />
-
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md }}>
-        {CATEGORIES.map((c) => (
-          <Button
-            key={c}
-            title={c === 'all' ? 'All' : c[0].toUpperCase() + c.slice(1)}
-            variant={category === c ? 'primary' : 'outline'}
-            onPress={() => setCategory(c)}
-            style={{ marginRight: spacing.xs, marginBottom: spacing.xs, paddingHorizontal: spacing.md, minHeight: 40 }}
-          />
-        ))}
-      </View>
-
       <FlatList
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        ListHeaderComponent={
+          <>
+            <Text style={[typography.bodyMuted, { marginBottom: spacing.md }]}>
+              + for supplies donated, − for supplies handed out.
+            </Text>
+
+            {pendingSync > 0 && (
+              <Card style={{ marginBottom: spacing.md, backgroundColor: colors.background }}>
+                <Text style={typography.bodyMuted}>
+                  {pendingSync} change{pendingSync === 1 ? '' : 's'} waiting to sync (no connection yet — nothing is lost)
+                </Text>
+              </Card>
+            )}
+
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              style={[styles.input, { marginBottom: spacing.sm }]}
+              placeholder="Search items…"
+              autoCapitalize="none"
+            />
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md }}>
+              {CATEGORIES.map((c) => (
+                <Button
+                  key={c}
+                  title={c === 'all' ? 'All' : c[0].toUpperCase() + c.slice(1)}
+                  variant={category === c ? 'primary' : 'outline'}
+                  onPress={() => setCategory(c)}
+                  style={{ marginRight: spacing.xs, marginBottom: spacing.xs, paddingHorizontal: spacing.md, minHeight: 40 }}
+                />
+              ))}
+            </View>
+          </>
+        }
         data={filteredItems}
         keyExtractor={(item) => item._id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
         contentContainerStyle={{ paddingBottom: spacing.xl }}
         renderItem={({ item }) => {
           const isLow = item.currentStock <= item.lowThreshold;
-          const isBusy = busyId === item._id;
           return (
             <Card style={{ marginBottom: spacing.sm, borderColor: isLow ? colors.danger : colors.border }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={typography.h2}>{item.name}</Text>
+                <Text style={[typography.h2, { flexShrink: 1, marginRight: spacing.sm }]}>{item.name}</Text>
                 {isLow && <Text style={{ color: colors.danger, fontWeight: '600' }}>LOW</Text>}
               </View>
               <Text style={[typography.bodyMuted, { marginBottom: spacing.sm }]}>
@@ -114,11 +133,13 @@ export default function QuickStockScreen() {
                 {STEPS.map((n) => (
                   <Button
                     key={`minus-${n}`}
-                    title={`-${n}`}
+                    title={`−${n}`}
+                    accessibilityLabel={`Remove ${n} ${item.name}`}
                     variant="outline"
-                    disabled={isBusy}
+                    textColor={colors.danger}
+                    disabled={item.currentStock <= 0}
                     onPress={() => adjust(item, -n)}
-                    style={{ flex: 1, marginRight: spacing.xs, minHeight: 40, borderColor: colors.danger }}
+                    style={{ flex: 1, marginRight: n !== STEPS[STEPS.length - 1] ? spacing.xs : 0, minHeight: 48, borderColor: colors.danger }}
                   />
                 ))}
               </View>
@@ -127,10 +148,11 @@ export default function QuickStockScreen() {
                   <Button
                     key={`plus-${n}`}
                     title={`+${n}`}
+                    accessibilityLabel={`Add ${n} ${item.name}`}
                     variant="outline"
-                    disabled={isBusy}
+                    textColor={colors.success}
                     onPress={() => adjust(item, n)}
-                    style={{ flex: 1, marginRight: spacing.xs, minHeight: 40, borderColor: colors.success }}
+                    style={{ flex: 1, marginRight: n !== STEPS[STEPS.length - 1] ? spacing.xs : 0, minHeight: 48, borderColor: colors.success }}
                   />
                 ))}
               </View>

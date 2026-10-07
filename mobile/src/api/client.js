@@ -35,7 +35,11 @@ async function request(path, { method = 'GET', body, requiresAuth = true } = {})
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || 'Something went wrong. Please try again.');
+    const error = new Error(data.error || 'Something went wrong. Please try again.');
+    // Lets the offline queue tell "the server will never accept this" (e.g.
+    // the item was deleted) apart from "try again later".
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -88,6 +92,16 @@ export const api = {
       body: { amount, donorName, donorEmail },
       requiresAuth: false,
     }),
+
+  // Community survey - public, but sends the token when there is one so
+  // volunteer-assisted entries are marked as such (see backend detectStaff).
+  submitSurvey: (payload) => request('/api/survey', { method: 'POST', body: payload }),
+  getSurveySummary: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/api/survey/summary${qs ? `?${qs}` : ''}`);
+  },
+  getSurveyContactRequests: () => request('/api/survey/contact-requests'),
+  resolveSurveyContactRequest: (id) => request(`/api/survey/contact-requests/${id}/resolve`, { method: 'PATCH' }),
 
   // Guest - contact
   submitContact: (payload) =>
