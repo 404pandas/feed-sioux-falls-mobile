@@ -1,10 +1,10 @@
 import en from './strings/en';
 import es from './strings/es';
 
-// The app offers English and Spanish - the two languages with full
-// translations on the website. The website also lists Nepali, Swahili,
-// Arabic, Dakota and Lakota as "help us translate" placeholders; once one
-// of those is translated there, copy its strings file here and add it below.
+// Same list as the website's language picker. English and Spanish are
+// translated; the rest are "help us translate" placeholders (strings: null)
+// that show TranslationPlaceholder instead of the survey. Once one is
+// translated on the website, copy its strings file here and set `strings`.
 //
 // The shared strings files are written for a web page ("press Esc", "clear
 // your browser history", "opens a weather page"). APP_UI replaces those
@@ -13,6 +13,8 @@ import es from './strings/es';
 // website's before launch.
 const APP_UI = {
   en: {
+    // Short header title - the full one gets cut off next to Quick Exit.
+    headerTitle: 'Survey',
     quickExitExplain: 'Need to stop fast? Tap Quick Exit at the top. It erases your answers right away.',
     quickExitDone: 'Answers erased.',
     savedNote: 'Your answers save on this phone as you go, in case you lose signal. They are erased when you send the survey.',
@@ -27,6 +29,7 @@ const APP_UI = {
     qrTitle: 'Scan to take the survey on your own phone',
   },
   es: {
+    headerTitle: 'Encuesta',
     quickExitExplain: '¿Necesita parar rápido? Toque Salida rápida arriba. Borra sus respuestas de inmediato.',
     quickExitDone: 'Respuestas borradas.',
     savedNote: 'Sus respuestas se guardan en este teléfono mientras avanza, por si pierde la señal. Se borran cuando envía la encuesta.',
@@ -47,8 +50,13 @@ function forApp(code, strings) {
 }
 
 export const LANGUAGES = [
-  { code: 'en', nativeName: 'English', speechLang: 'en-US', strings: forApp('en', en) },
-  { code: 'es', nativeName: 'Español', speechLang: 'es-US', strings: forApp('es', es) },
+  { code: 'en', nativeName: 'English', englishName: 'English', speechLang: 'en-US', strings: forApp('en', en) },
+  { code: 'es', nativeName: 'Español', englishName: 'Spanish', speechLang: 'es-US', strings: forApp('es', es) },
+  { code: 'ne', nativeName: 'नेपाली', englishName: 'Nepali', speechLang: 'ne-NP', strings: null },
+  { code: 'sw', nativeName: 'Kiswahili', englishName: 'Swahili', speechLang: 'sw-KE', strings: null },
+  { code: 'ar', nativeName: 'العربية', englishName: 'Arabic', speechLang: 'ar', strings: null },
+  { code: 'dak', nativeName: 'Dakȟótiyapi', englishName: 'Dakota', speechLang: 'dak', strings: null },
+  { code: 'lkt', nativeName: 'Lakȟótiyapi', englishName: 'Lakota', speechLang: 'lkt', strings: null },
 ];
 
 export const DEFAULT_LANGUAGE = 'en';

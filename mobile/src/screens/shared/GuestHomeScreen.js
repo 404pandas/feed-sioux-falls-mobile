@@ -1,35 +1,26 @@
 import React from 'react';
 import { Text } from 'react-native';
 import Screen from '../../components/Screen';
-import Button from '../../components/Button';
-import Card from '../../components/Card';
+import BackLink from '../../components/BackLink';
+import PantryInfo from '../../components/PantryInfo';
+import SurveyInvite from '../../components/SurveyInvite';
 import SupportForms from '../../components/SupportForms';
 import { spacing, typography } from '../../theme/tokens';
 
+// Same layout as the website's guest page: where to get food first, then
+// the survey, then donate/contact. "Log In" is in the header (App.js).
 export default function GuestHomeScreen({ navigation }) {
   return (
     <Screen>
-      <Text style={typography.h1}>Support Feed Sioux Falls</Text>
+      <BackLink label="Home" onPress={() => navigation.navigate('Landing')} />
+      <Text style={typography.h1}>Feed Sioux Falls</Text>
       <Text style={[typography.bodyMuted, { marginTop: spacing.xs, marginBottom: spacing.lg }]}>
-        Every dollar goes toward hygiene and winter supplies for the pantry.
+        Get food and supplies, reach out, or help out. Every dollar goes toward hygiene and winter supplies for the pantry.
       </Text>
 
-      <Card style={{ marginBottom: spacing.lg }}>
-        <Text style={[typography.h2, { marginBottom: spacing.sm }]}>Community Survey</Text>
-        <Text style={[typography.bodyMuted, { marginBottom: spacing.md }]}>
-          Help the city see who needs what. About 3 minutes, anonymous, English or Español.
-        </Text>
-        <Button title="Take the Survey" variant="accent" onPress={() => navigation.navigate('Survey')} />
-      </Card>
-
+      <PantryInfo />
+      <SurveyInvite />
       <SupportForms />
-
-      <Button
-        title="Volunteer / Admin Login"
-        variant="outline"
-        onPress={() => navigation.navigate('Landing')}
-        style={{ marginTop: spacing.lg }}
-      />
     </Screen>
   );
 }

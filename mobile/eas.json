@@ -15,7 +15,8 @@
       },
       "env": {
         "API_URL": "https://feed-sioux-falls-mobile.onrender.com"
-      }
+      },
+      "autoIncrement": true
     }
   }
 }

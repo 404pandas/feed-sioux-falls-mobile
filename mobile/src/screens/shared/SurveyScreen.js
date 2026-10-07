@@ -9,10 +9,12 @@ import { api } from '../../api/client';
 import { queueAction } from '../../utils/offlineQueue';
 import { useAuth } from '../../context/AuthContext';
 import { SECTIONS, isVisible } from '../../survey/questions';
-import { LANGUAGES } from '../../survey/languages';
+import { LANGUAGES, getLanguage } from '../../survey/languages';
 import { clearDraft, loadDraft, saveDraft, useSpeech, useSurveyLanguage } from '../../survey/hooks';
 import SurveyQuestion, { ReadAloudButton } from '../../survey/SurveyQuestion';
 import ShareSurvey from '../../survey/ShareSurvey';
+import TranslationPlaceholder from '../../survey/TranslationPlaceholder';
+import BackLink from '../../components/BackLink';
 
 const EMPTY_CONTACT = { wants: null, name: '', phone: '', email: '', bestTime: '', safeToLeaveMessage: null };
 
@@ -37,7 +39,9 @@ export default function SurveyScreen({ navigation }) {
   const isStaff = user?.role === 'admin' || user?.role === 'volunteer';
 
   const [language, setLanguage] = useSurveyLanguage();
-  const strings = language.strings;
+  // Placeholder (not yet translated) languages show English around the
+  // "help us translate" page.
+  const strings = language.strings || getLanguage('en').strings;
   const { ui } = strings;
   const speech = useSpeech(language.speechLang);
 
@@ -97,7 +101,7 @@ export default function SurveyScreen({ navigation }) {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: ui.title,
+      title: ui.headerTitle,
       headerRight: () => (
         <Pressable
           onPress={quickExit}
@@ -219,9 +223,11 @@ export default function SurveyScreen({ navigation }) {
     }
   }
 
+  // Each language in its own script, so people can find theirs without
+  // reading English. Two per row so every name fits on small phones.
   const languagePicker = (
-    <View style={styles.langRow} accessibilityRole="radiogroup" accessibilityLabel={ui.language}>
-      {LANGUAGES.map((l, i) => {
+    <View style={styles.langRow} accessibilityRole="radiogroup" accessibilityLabel={`${ui.language} / Language`}>
+      {LANGUAGES.map((l) => {
         const active = l.code === language.code;
         return (
           <Pressable
@@ -229,9 +235,17 @@ export default function SurveyScreen({ navigation }) {
             onPress={() => setLanguage(l.code)}
             accessibilityRole="radio"
             accessibilityState={{ checked: active }}
-            style={[styles.langButton, i === LANGUAGES.length - 1 && { marginRight: 0 }, active && styles.langButtonActive]}
+            accessibilityLabel={l.nativeName === l.englishName ? l.nativeName : `${l.nativeName}, ${l.englishName}`}
+            style={[styles.langButton, active && styles.langButtonActive]}
           >
-            <Text style={[styles.langText, active && styles.langTextActive]}>{l.nativeName}</Text>
+            <Text style={[styles.langText, active && styles.langTextActive]} numberOfLines={1}>
+              {l.nativeName}
+            </Text>
+            {l.nativeName !== l.englishName && (
+              <Text style={[styles.langSub, active && styles.langTextActive]} numberOfLines={1}>
+                {l.englishName}
+              </Text>
+            )}
           </Pressable>
         );
       })}
@@ -239,7 +253,9 @@ export default function SurveyScreen({ navigation }) {
   );
 
   let body;
-  if (done) {
+  if (!language.strings) {
+    body = <TranslationPlaceholder language={language} onChooseLanguage={setLanguage} />;
+  } else if (done) {
     body = (
       <>
         <Text style={typography.h1} accessibilityRole="header">
@@ -368,6 +384,8 @@ export default function SurveyScreen({ navigation }) {
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
       >
+        {/* The normal way out - saved progress stays, unlike Quick Exit. */}
+        <BackLink label={user ? ui.backHome : ui.backHomeGuest} onPress={() => navigation.popToTop()} />
         {languagePicker}
         {body}
       </ScrollView>
@@ -457,20 +475,23 @@ function ContactStep({ ui, contact, setContact, speech }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  langRow: { flexDirection: 'row', marginBottom: spacing.lg },
+  langRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: spacing.md },
   langButton: {
-    flex: 1,
-    minHeight: 48,
+    width: '48.5%',
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderWidth: 2,
     borderColor: colors.primary,
-    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
     borderRadius: radii.md,
     backgroundColor: colors.white,
   },
   langButtonActive: { backgroundColor: colors.primary },
   langText: { fontSize: 18, fontWeight: '600', color: colors.primary },
+  langSub: { fontSize: 13, color: colors.textMuted },
   langTextActive: { color: colors.white },
   quickExit: {
     backgroundColor: colors.danger,

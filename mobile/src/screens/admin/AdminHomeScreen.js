@@ -5,6 +5,7 @@ import Screen from '../../components/Screen';
 import { colors, spacing, radii, typography } from '../../theme/tokens';
 
 const LINKS = [
+  { route: 'Messages', icon: 'mail-outline', title: 'Messages', sub: '"I need help" requests and other notes from the contact form' },
   { route: 'Inventory', icon: 'cube-outline', title: 'Inventory', sub: 'Add, edit, and reorder items' },
   { route: 'Budget', icon: 'wallet-outline', title: 'Budget', sub: "This month's spending" },
   { route: 'Reports', icon: 'bar-chart-outline', title: 'Reports', sub: 'Charts and PDFs for grants and the board' },

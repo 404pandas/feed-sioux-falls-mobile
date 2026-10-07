@@ -2,7 +2,9 @@ export default {
   expo: {
     name: "Feed Sioux Falls",
     slug: "feed-sioux-falls",
-    version: "1.0.0",
+    // Shown at the bottom of the login screen - bump it for each release so
+    // you can tell which build is installed on a phone.
+    version: "2.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -18,6 +20,11 @@ export default {
     },
     android: {
       package: "com.feedsiouxfalls.app",
+      // Shrink the screen above the keyboard (instead of letting it cover
+      // the bottom), so the field being typed in and its Save button stay
+      // visible. This is Expo's default; spelled out so it isn't changed by
+      // accident.
+      softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#F5F1E8",

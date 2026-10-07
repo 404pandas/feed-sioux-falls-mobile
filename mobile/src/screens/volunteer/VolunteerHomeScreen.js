@@ -179,6 +179,13 @@ export default function VolunteerHomeScreen({ navigation }) {
           <Button title="Start Distribution Event" onPress={startEvent} loading={starting} style={{ marginTop: spacing.md }} />
         </Card>
 
+        {/* Same shortcuts as the website's home screen (also in the tab bar). */}
+        <Button title="Adjust Inventory" variant="outline" onPress={() => navigation.navigate('Stock')} style={{ marginBottom: spacing.sm }} />
+        <Button title="Community Survey" variant="outline" onPress={() => navigation.navigate('Survey')} style={{ marginBottom: spacing.sm }} />
+        {user?.role === 'admin' && (
+          <Button title="Messages" variant="outline" onPress={() => navigation.navigate('Messages')} style={{ marginBottom: spacing.sm }} />
+        )}
+
       </Screen>
     );
   }

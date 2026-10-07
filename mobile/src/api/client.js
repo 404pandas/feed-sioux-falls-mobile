@@ -106,4 +106,7 @@ export const api = {
   // Guest - contact
   submitContact: (payload) =>
     request('/api/contact', { method: 'POST', body: payload, requiresAuth: false }),
+  // Admin - contact form inbox
+  getContactMessages: () => request('/api/contact'),
+  resolveContactMessage: (id) => request(`/api/contact/${id}/resolve`, { method: 'PATCH' }),
 };

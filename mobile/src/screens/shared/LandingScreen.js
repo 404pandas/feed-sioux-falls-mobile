@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, StyleSheet, Alert } from 'react-native';
+import Constants from 'expo-constants';
 import Screen from '../../components/Screen';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import SurveyInvite from '../../components/SurveyInvite';
 import { colors, spacing, typography, radii } from '../../theme/tokens';
 import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -50,18 +52,23 @@ export default function LandingScreen({ navigation }) {
         Bridging people who have a little extra with people who need a little extra.
       </Text>
 
-      <Button
-        title="Take the Community Survey · Encuesta"
-        variant="accent"
-        onPress={() => navigation.navigate('Survey')}
-        style={{ marginBottom: spacing.xs }}
-      />
-      <Text style={[typography.bodyMuted, { marginBottom: spacing.lg }]}>
-        About 3 minutes. Anonymous - every question is optional. English or Español.
-      </Text>
+      <Card style={{ marginBottom: spacing.lg }}>
+        <Text style={[typography.h2, { marginBottom: spacing.sm }]}>Welcome!</Text>
+        <Text style={[typography.body, { marginBottom: spacing.sm }]}>
+          <Text style={{ fontWeight: '700' }}>Neighbors, volunteers, and admins with an account:</Text> pick your name
+          below and enter your PIN.
+        </Text>
+        <Text style={[typography.body, { marginBottom: spacing.md }]}>
+          <Text style={{ fontWeight: '700' }}>Everyone else:</Text> no account needed - tap Continue as Guest to donate,
+          get in touch, or see what's available.
+        </Text>
+        <Button title="Continue as Guest" variant="outline" onPress={() => navigation.navigate('GuestHome')} />
+      </Card>
+
+      <SurveyInvite />
 
       <Card style={{ marginBottom: spacing.lg }}>
-        <Text style={[typography.h2, { marginBottom: spacing.md }]}>Volunteer / Admin Login</Text>
+        <Text style={[typography.h2, { marginBottom: spacing.md }]}>Log In</Text>
 
         <Text style={[typography.bodyMuted, { marginBottom: spacing.sm }]}>Select your name</Text>
         {namesError && (
@@ -115,11 +122,10 @@ export default function LandingScreen({ navigation }) {
         )}
       </Card>
 
-      <Button
-        title="Continue as Guest"
-        variant="outline"
-        onPress={() => navigation.navigate('GuestHome')}
-      />
+      {/* So you can tell at a glance which build is installed. */}
+      <Text style={[typography.bodyMuted, { textAlign: 'center', marginTop: 'auto' }]}>
+        Version {Constants.expoConfig?.version}
+      </Text>
     </Screen>
   );
 }

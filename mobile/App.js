@@ -25,6 +25,7 @@ import AdminHomeScreen from './src/screens/admin/AdminHomeScreen';
 import SurveyResultsScreen from './src/screens/admin/SurveyResultsScreen';
 import SurveyHubScreen from './src/screens/volunteer/SurveyHubScreen';
 import SurveyScreen from './src/screens/shared/SurveyScreen';
+import MessagesScreen from './src/screens/admin/MessagesScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -40,16 +41,29 @@ const screenOptions = {
 // there's always a way to log out no matter which screen someone's on -
 // e.g. mid-tally on the distribution screen, not just from the home screen.
 function HeaderLogoutButton() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   function confirmLogout() {
     Alert.alert('Log out?', 'You can log back in anytime.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log Out', style: 'destructive', onPress: logout },
     ]);
   }
+  // Shows who's logged in next to Log Out, like the website header.
   return (
-    <Pressable onPress={confirmLogout} hitSlop={12}>
-      <Text style={{ color: colors.white, fontWeight: '600' }}>Log Out</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      {!!user?.name && <Text style={{ color: colors.white, opacity: 0.85, marginRight: 12 }}>{user.name.split(' ')[0]}</Text>}
+      <Pressable onPress={confirmLogout} hitSlop={12} accessibilityRole="button">
+        <Text style={{ color: colors.white, fontWeight: '600', fontSize: 16 }}>Log Out</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// Guests get "Log In" in the same spot, so the login is always one tap away.
+function HeaderLoginButton({ navigation }) {
+  return (
+    <Pressable onPress={() => navigation.navigate('Landing')} hitSlop={12} accessibilityRole="button">
+      <Text style={{ color: colors.white, fontWeight: '600', fontSize: 16 }}>Log In</Text>
     </Pressable>
   );
 }
@@ -73,7 +87,11 @@ function GuestStack() {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="Landing" component={LandingScreen} options={{ title: 'Feed Sioux Falls' }} />
-      <Stack.Screen name="GuestHome" component={GuestHomeScreen} options={{ title: 'Support Us' }} />
+      <Stack.Screen
+        name="GuestHome"
+        component={GuestHomeScreen}
+        options={({ navigation }) => ({ title: 'Feed Sioux Falls', headerRight: () => <HeaderLoginButton navigation={navigation} /> })}
+      />
       <Stack.Screen name="Survey" component={SurveyScreen} options={surveyScreenOptions} />
     </Stack.Navigator>
   );
@@ -135,6 +153,7 @@ function StaffStack() {
       <Stack.Screen name="EventsList" component={EventsListScreen} options={{ title: 'Past Events' }} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Event Details' }} />
       <Stack.Screen name="SurveyResults" component={SurveyResultsScreen} options={{ title: 'Survey Results' }} />
+      <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: 'Messages' }} />
     </Stack.Navigator>
   );
 }
