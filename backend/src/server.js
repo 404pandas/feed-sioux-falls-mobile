@@ -13,6 +13,8 @@ const reportRoutes = require('./routes/reports');
 const donateRoutes = require('./routes/donate');
 const contactRoutes = require('./routes/contact');
 const surveyRoutes = require('./routes/survey');
+const publicRoutes = require('./routes/public');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -57,6 +59,10 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/donate', donateRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/survey', surveyRoutes);
+// Public totals and needs list for the website/app home page (no login).
+app.use('/api/public', publicRoutes);
+// Admin Data screens - full view/add/edit/delete, admins only.
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
@@ -71,8 +77,14 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4000;
 
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Feed Sioux Falls API running on port ${PORT}`);
+// Started directly (npm start): connect and listen. Required from a test:
+// just hand back the app.
+if (require.main === module) {
+  connectDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Feed Sioux Falls API running on port ${PORT}`);
+    });
   });
-});
+}
+
+module.exports = app;

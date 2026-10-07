@@ -21,11 +21,15 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // POST /api/items - create a new item (admin only)
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { name, category, unitCost, currentStock, lowThreshold, unitType, amazonLink } = req.body;
+  const { name, category, unitCost, currentStock, lowThreshold, unitType, amazonLink, sources, hideFromPublic } = req.body;
 
   if (!name || !category || unitCost == null || !unitType) {
     return res.status(400).json({ error: 'name, category, unitCost, and unitType are required.' });
   }
+
+  const links = Item.syncAmazonLink(
+    Array.isArray(sources) ? { sources } : { amazonLink: amazonLink || null }
+  );
 
   const item = await Item.create({
     name,
@@ -34,7 +38,9 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     currentStock: currentStock || 0,
     lowThreshold: lowThreshold || 0,
     unitType,
-    amazonLink: amazonLink || null,
+    amazonLink: links.amazonLink,
+    sources: links.sources || [],
+    hideFromPublic: !!hideFromPublic,
   });
 
   // Record the starting stock as a transaction too, not just a bare number
@@ -53,12 +59,24 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/items/:id - edit item details (admin only)
+// Stock changes should go through adjust-stock so they're recorded as
+// transactions - but older app versions send currentStock here, so it's
+// still accepted.
+const EDITABLE_ITEM_FIELDS = ['name', 'category', 'unitCost', 'currentStock', 'lowThreshold', 'unitType', 'amazonLink', 'sources', 'hideFromPublic'];
+
 router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const item = await Item.findByIdAndUpdate(req.params.id, req.body, {
+  const existing = await Item.findById(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Item not found.' });
+
+  const update = {};
+  for (const field of EDITABLE_ITEM_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(req.body, field)) update[field] = req.body[field];
+  }
+
+  const item = await Item.findByIdAndUpdate(req.params.id, Item.syncAmazonLink(update, existing), {
     new: true,
     runValidators: true,
   });
-  if (!item) return res.status(404).json({ error: 'Item not found.' });
   res.json(item);
 }));
 
