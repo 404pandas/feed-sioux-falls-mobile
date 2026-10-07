@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, Share, StyleSheet } from 'react-native';
+import { View, Share, StyleSheet } from 'react-native';
+import Text from '../components/Text';
 import Constants from 'expo-constants';
 import QRCode from 'react-native-qrcode-svg';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import { colors, spacing, typography } from '../theme/tokens';
+import { websiteUrl } from '../config/org';
 
-// The survey's web address (the website's /survey page), set in
-// app.config.js. When it isn't set yet, sharing is hidden rather than
-// sending people a broken link.
+// The survey's web address: the website's /survey page. SURVEY_URL in
+// app.config.js overrides it (e.g. for a custom domain later).
 export function surveyUrl() {
-  return Constants.expoConfig?.extra?.surveyUrl || null;
+  return Constants.expoConfig?.extra?.surveyUrl || `${websiteUrl}/survey`;
 }
 
 // "Know someone who should fill this out?" - the phone's own share sheet

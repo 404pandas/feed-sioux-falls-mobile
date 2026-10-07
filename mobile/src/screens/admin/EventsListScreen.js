@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, Alert, RefreshControl } from 'react-native';
+import { View, FlatList, Pressable, Alert, RefreshControl } from 'react-native';
+import Text from '../../components/Text';
 import { useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Screen from '../../components/Screen';

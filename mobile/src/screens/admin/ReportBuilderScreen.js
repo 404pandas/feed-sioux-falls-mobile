@@ -1,5 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, Alert, Dimensions, StyleSheet } from 'react-native';
+import { View, Alert, Dimensions, StyleSheet } from 'react-native';
+import Text from '../../components/Text';
+import TextInput from '../../components/TextInput';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import ViewShot from 'react-native-view-shot';
@@ -9,7 +11,7 @@ import * as FileSystem from 'expo-file-system';
 import Card from '../../components/Card';
 import Screen from '../../components/Screen';
 import Button from '../../components/Button';
-import { colors, spacing, typography, radii } from '../../theme/tokens';
+import { colors, spacing, typography, radii, inputStyle } from '../../theme/tokens';
 import { api } from '../../api/client';
 import { SECTIONS as SURVEY_SECTIONS, PREFER_NOT } from '../../survey/questions';
 import { getLanguage } from '../../survey/languages';
@@ -581,13 +583,5 @@ function buildReportHtml({ report, sections, narrative, images, start, end, grou
 
 const styles = StyleSheet.create({
   label: { ...typography.bodyMuted, marginBottom: spacing.xs },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  input: inputStyle,
 });

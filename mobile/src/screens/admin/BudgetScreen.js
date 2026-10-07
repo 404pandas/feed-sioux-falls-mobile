@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, Alert, RefreshControl } from 'react-native';
+import { View, Alert, RefreshControl } from 'react-native';
+import Text from '../../components/Text';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import { colors, spacing, typography, radii } from '../../theme/tokens';

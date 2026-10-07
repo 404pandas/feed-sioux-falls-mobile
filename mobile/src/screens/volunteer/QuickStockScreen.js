@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, TextInput, FlatList, Alert, RefreshControl, StyleSheet } from 'react-native';
+import { View, FlatList, Alert, RefreshControl, StyleSheet } from 'react-native';
+import Text from '../../components/Text';
+import TextInput from '../../components/TextInput';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { colors, spacing, typography, radii } from '../../theme/tokens';
+import { colors, spacing, typography, radii, inputStyle } from '../../theme/tokens';
 import { api } from '../../api/client';
 import { queueAction, getQueueSize } from '../../utils/offlineQueue';
 
@@ -79,7 +81,10 @@ export default function QuickStockScreen() {
         keyboardDismissMode="on-drag"
         ListHeaderComponent={
           <>
-            <Text style={[typography.bodyMuted, { marginBottom: spacing.md }]}>
+            <Text style={typography.h1} accessibilityRole="header">
+              Inventory
+            </Text>
+            <Text style={[typography.bodyMuted, { marginTop: 4, marginBottom: spacing.md }]}>
               + for supplies donated, − for supplies handed out.
             </Text>
 
@@ -172,13 +177,5 @@ export default function QuickStockScreen() {
 }
 
 const styles = StyleSheet.create({
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  input: inputStyle,
 });

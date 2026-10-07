@@ -85,6 +85,10 @@ export const api = {
     return request(`/api/reports/custom?${qs}`);
   },
 
+  // Public - totals and "what we're short on" for the public screens.
+  // Names and Out/Low only, never counts or costs (cached a minute server-side).
+  getPublicSummary: () => request('/api/public/summary', { requiresAuth: false }),
+
   // Guest - donations
   createPaymentIntent: (amount, donorName, donorEmail) =>
     request('/api/donate/create-payment-intent', {

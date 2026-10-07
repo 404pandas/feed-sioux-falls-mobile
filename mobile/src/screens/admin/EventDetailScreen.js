@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
+import Text from '../../components/Text';
+import TextInput from '../../components/TextInput';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { colors, spacing, typography, radii } from '../../theme/tokens';
+import { colors, spacing, typography, radii, inputStyle } from '../../theme/tokens';
 import { api } from '../../api/client';
 
 function formatDate(dateStr) {
@@ -146,13 +148,5 @@ export default function EventDetailScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   label: { ...typography.bodyMuted, marginBottom: spacing.xs, marginTop: spacing.md },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  input: inputStyle,
 });

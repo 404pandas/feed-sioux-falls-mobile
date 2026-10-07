@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+import Text from './Text';
 import { colors, spacing } from '../theme/tokens';
 
 // The website's "← Home" pill. The header's back arrow does the same

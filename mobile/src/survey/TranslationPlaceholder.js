@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Text from '../components/Text';
+import TextInput from '../components/TextInput';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { colors, spacing, radii, typography } from '../theme/tokens';
+import { colors, spacing, radii, typography, inputStyle } from '../theme/tokens';
 import { api } from '../api/client';
 import en from './strings/en';
 
@@ -83,13 +85,5 @@ const styles = StyleSheet.create({
   languageName: { fontSize: 32, fontWeight: '700', color: colors.primary, marginBottom: spacing.xs },
   body: { fontSize: 18, lineHeight: 26, color: colors.text, marginBottom: spacing.md },
   label: { ...typography.bodyMuted, fontSize: 16, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    fontSize: 18,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  input: inputStyle,
 });

@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, AppState } from 'react-native';
+import { View, StyleSheet, Alert, AppState } from 'react-native';
+import Text from '../../components/Text';
+import TextInput from '../../components/TextInput';
 import { useFocusEffect } from '@react-navigation/native';
 import Screen from '../../components/Screen';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
-import { colors, spacing, typography, radii } from '../../theme/tokens';
+import { colors, spacing, typography, radii, inputStyle } from '../../theme/tokens';
 import { api } from '../../api/client';
 import { queueAction, getQueueSize, syncQueue } from '../../utils/offlineQueue';
 import { useAuth } from '../../context/AuthContext';
@@ -179,12 +181,6 @@ export default function VolunteerHomeScreen({ navigation }) {
           <Button title="Start Distribution Event" onPress={startEvent} loading={starting} style={{ marginTop: spacing.md }} />
         </Card>
 
-        {/* Same shortcuts as the website's home screen (also in the tab bar). */}
-        <Button title="Adjust Inventory" variant="outline" onPress={() => navigation.navigate('Stock')} style={{ marginBottom: spacing.sm }} />
-        <Button title="Community Survey" variant="outline" onPress={() => navigation.navigate('Survey')} style={{ marginBottom: spacing.sm }} />
-        {user?.role === 'admin' && (
-          <Button title="Messages" variant="outline" onPress={() => navigation.navigate('Messages')} style={{ marginBottom: spacing.sm }} />
-        )}
 
       </Screen>
     );
@@ -240,7 +236,7 @@ export default function VolunteerHomeScreen({ navigation }) {
             <Button
               title="Adjust Stock"
               variant="outline"
-              onPress={() => navigation.navigate('Stock')}
+              onPress={() => navigation.navigate('Inventory')}
               style={{ flex: 1, marginRight: spacing.sm }}
             />
             <Button title="Survey" variant="outline" onPress={() => navigation.navigate('Survey')} style={{ flex: 1 }} />
@@ -262,13 +258,5 @@ export default function VolunteerHomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   label: { ...typography.bodyMuted, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  input: inputStyle,
 });

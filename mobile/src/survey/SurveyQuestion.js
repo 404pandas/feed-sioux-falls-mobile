@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+import Text from '../components/Text';
+import TextInput from '../components/TextInput';
 import { PREFER_NOT } from './questions';
 import { colors, spacing, radii, typography } from '../theme/tokens';
 
@@ -145,14 +147,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   optionMuted: { backgroundColor: colors.background },
-  optionChecked: { borderColor: colors.primary, backgroundColor: colors.surface },
+  optionChecked: { borderColor: colors.primary, borderWidth: 3, backgroundColor: '#D7EFE9' },
   optionText: { fontSize: 18, color: colors.text, flexShrink: 1 },
   optionTextChecked: { fontWeight: '700' },
   mark: {
     width: 26,
     height: 26,
     borderWidth: 2,
-    borderColor: colors.secondary,
+    borderColor: colors.primary,
     marginRight: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',

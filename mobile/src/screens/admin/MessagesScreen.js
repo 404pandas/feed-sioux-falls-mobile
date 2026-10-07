@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, Pressable, Linking, RefreshControl, Alert, StyleSheet } from 'react-native';
+import { View, Pressable, Linking, RefreshControl, Alert, StyleSheet } from 'react-native';
+import Text from '../../components/Text';
 import { useFocusEffect } from '@react-navigation/native';
 import Screen from '../../components/Screen';
 import Card from '../../components/Card';

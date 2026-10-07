@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { useStripe } from '@stripe/stripe-react-native';
+import Text from './Text';
+import TextInput from './TextInput';
 import Card from './Card';
 import Button from './Button';
-import { colors, spacing, typography, radii } from '../theme/tokens';
+import { colors, spacing, typography, inputStyle } from '../theme/tokens';
 import { api } from '../api/client';
 
 export const CATEGORIES = [
@@ -29,23 +31,24 @@ const PRESET_AMOUNTS = [
   { value: 2800, label: '$2,800', description: 'Restocks supplies for a full month' },
 ];
 
-// The donate + contact forms, shared by GuestHomeScreen (public, no login)
-// and NeighborHomeScreen (logged-in neighbors) - both hit the same public
-// API routes regardless of who's viewing them.
+// Donate + contact, as separate cards like the website's SupportForms -
+// the Give screen uses both, Get help and About use the contact card on
+// its own (with a different starting category).
 export default function SupportForms() {
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  return (
+    <>
+      <DonateCard style={{ marginBottom: spacing.lg }} />
+      <ContactCard />
+    </>
+  );
+}
 
+export function DonateCard({ style }) {
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [amount, setAmount] = useState('');
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
   const [donating, setDonating] = useState(false);
-
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [category, setCategory] = useState('contact');
-  const [sending, setSending] = useState(false);
 
   async function handleDonate() {
     const parsedAmount = Number(amount);
@@ -83,12 +86,71 @@ export default function SupportForms() {
     }
   }
 
-  async function handleContactSubmit() {
+  return (
+    <Card style={style}>
+      <Text style={[typography.h2, { marginBottom: spacing.md }]}>Make a Donation</Text>
+
+      <Text style={styles.label}>Amount (USD)</Text>
+      <View style={styles.chips}>
+        {PRESET_AMOUNTS.map((preset) => (
+          <Button
+            key={preset.value}
+            title={preset.label}
+            small
+            variant={amount === String(preset.value) ? 'primary' : 'outline'}
+            onPress={() => setAmount(String(preset.value))}
+            style={styles.chip}
+          />
+        ))}
+      </View>
+      {amount === String(PRESET_AMOUNTS[PRESET_AMOUNTS.length - 1].value) && (
+        <Text style={[typography.bodyMuted, { marginBottom: spacing.sm }]}>
+          {PRESET_AMOUNTS[PRESET_AMOUNTS.length - 1].description}
+        </Text>
+      )}
+      <TextInput
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType="decimal-pad"
+        placeholder="Or enter a custom amount"
+        style={styles.input}
+        accessibilityLabel="Donation amount in dollars"
+      />
+
+      <Text style={styles.label}>Your name (optional)</Text>
+      <TextInput value={donorName} onChangeText={setDonorName} style={styles.input} placeholder="Jane Doe" />
+
+      <Text style={styles.label}>Email (optional)</Text>
+      <TextInput
+        value={donorEmail}
+        onChangeText={setDonorEmail}
+        style={styles.input}
+        placeholder="jane@example.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+
+      <Button title="Donate" icon="heart" variant="accent" onPress={handleDonate} loading={donating} style={{ marginTop: spacing.md }} />
+    </Card>
+  );
+}
+
+export function ContactCard({ defaultCategory = 'contact', title, style }) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [category, setCategory] = useState(defaultCategory);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+
+  async function handleSubmit() {
     if (!message.trim()) {
-      Alert.alert('Message required', 'Please include a message before sending.');
+      setError('Please include a message before sending.');
       return;
     }
-
+    setError('');
     setSending(true);
     try {
       await api.submitContact({
@@ -98,114 +160,78 @@ export default function SupportForms() {
         message,
         category,
       });
-      Alert.alert('Message sent', 'Thanks for reaching out - someone will follow up soon.');
+      setSent(true);
       setName('');
       setPhone('');
       setEmail('');
       setMessage('');
-      setCategory('contact');
+      setCategory(defaultCategory);
     } catch (err) {
-      Alert.alert('Could not send message', err.message);
+      setError(err.message);
     } finally {
       setSending(false);
     }
   }
 
   return (
-    <>
-      <Card style={{ marginBottom: spacing.lg }}>
-        <Text style={[typography.h2, { marginBottom: spacing.md }]}>Make a Donation</Text>
+    <Card style={style}>
+      <Text style={[typography.h2, { marginBottom: spacing.md }]}>{title || 'Contact Us'}</Text>
 
-        <Text style={styles.label}>Amount (USD)</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm }}>
-          {PRESET_AMOUNTS.map((preset) => (
-            <Button
-              key={preset.value}
-              title={preset.label}
-              variant={amount === String(preset.value) ? 'primary' : 'outline'}
-              onPress={() => setAmount(String(preset.value))}
-              style={{ marginRight: spacing.xs, marginBottom: spacing.xs, paddingHorizontal: spacing.md, minHeight: 40 }}
-            />
-          ))}
-        </View>
-        {amount === String(PRESET_AMOUNTS[PRESET_AMOUNTS.length - 1].value) && (
-          <Text style={[typography.bodyMuted, { marginBottom: spacing.sm }]}>
-            {PRESET_AMOUNTS[PRESET_AMOUNTS.length - 1].description}
-          </Text>
-        )}
-        <TextInput
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
-          placeholder="Or enter a custom amount"
-          style={styles.input}
-        />
+      {sent && (
+        <Text style={[typography.body, { color: colors.success, marginBottom: spacing.sm }]} accessibilityLiveRegion="polite">
+          Message sent - thanks for reaching out, someone will follow up soon.
+        </Text>
+      )}
 
-        <Text style={styles.label}>Your name (optional)</Text>
-        <TextInput value={donorName} onChangeText={setDonorName} style={styles.input} placeholder="Jane Doe" />
+      <Text style={styles.label}>What's this about?</Text>
+      <View style={styles.chips}>
+        {CATEGORIES.map((c) => (
+          <Button
+            key={c.value}
+            title={c.label}
+            small
+            variant={category === c.value ? 'primary' : 'outline'}
+            onPress={() => setCategory(c.value)}
+            style={styles.chip}
+          />
+        ))}
+      </View>
 
-        <Text style={styles.label}>Email (optional)</Text>
-        <TextInput
-          value={donorEmail}
-          onChangeText={setDonorEmail}
-          style={styles.input}
-          placeholder="jane@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
+      <Text style={styles.label}>Name (optional)</Text>
+      <TextInput value={name} onChangeText={setName} style={styles.input} placeholder="Your name" />
 
-        <Button title="Donate" variant="accent" onPress={handleDonate} loading={donating} style={{ marginTop: spacing.md }} />
-      </Card>
+      <Text style={styles.label}>Phone (optional)</Text>
+      <TextInput value={phone} onChangeText={setPhone} style={styles.input} placeholder="(605) 555-0100" keyboardType="phone-pad" />
 
-      <Card>
-        <Text style={[typography.h2, { marginBottom: spacing.md }]}>Contact Us</Text>
+      <Text style={styles.label}>Email (optional)</Text>
+      <TextInput
+        value={email}
+        onChangeText={setEmail}
+        style={styles.input}
+        placeholder="you@example.com"
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
-        <Text style={styles.label}>What's this about?</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm }}>
-          {CATEGORIES.map((c) => (
-            <Button
-              key={c.value}
-              title={c.label}
-              variant={category === c.value ? 'primary' : 'outline'}
-              onPress={() => setCategory(c.value)}
-              style={{ marginRight: spacing.xs, marginBottom: spacing.xs, paddingHorizontal: spacing.md, minHeight: 40 }}
-            />
-          ))}
-        </View>
+      <Text style={styles.label}>Message</Text>
+      <TextInput
+        value={message}
+        onChangeText={setMessage}
+        style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
+        placeholder="How can we help?"
+        multiline
+      />
 
-        <Text style={styles.label}>Name (optional)</Text>
-        <TextInput value={name} onChangeText={setName} style={styles.input} placeholder="Your name" />
+      {!!error && <Text style={[typography.body, { color: colors.danger, marginTop: spacing.sm }]}>{error}</Text>}
 
-        <Text style={styles.label}>Phone (optional)</Text>
-        <TextInput value={phone} onChangeText={setPhone} style={styles.input} placeholder="(605) 555-0100" keyboardType="phone-pad" />
-
-        <Text style={styles.label}>Email (optional)</Text>
-        <TextInput value={email} onChangeText={setEmail} style={styles.input} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
-
-        <Text style={styles.label}>Message</Text>
-        <TextInput
-          value={message}
-          onChangeText={setMessage}
-          style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-          placeholder="How can we help?"
-          multiline
-        />
-
-        <Button title="Send Message" onPress={handleContactSubmit} loading={sending} style={{ marginTop: spacing.md }} />
-      </Card>
-    </>
+      <Button title="Send Message" onPress={handleSubmit} loading={sending} style={{ marginTop: spacing.md }} />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  label: { ...typography.bodyMuted, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  label: { ...typography.label, marginBottom: spacing.xs, marginTop: spacing.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm },
+  chip: { marginRight: spacing.xs, marginBottom: spacing.xs },
+  input: inputStyle,
 });

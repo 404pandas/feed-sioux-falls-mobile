@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, Alert, StyleSheet, ScrollView } from 'react-native';
+import { View, Pressable, Alert, StyleSheet, ScrollView } from 'react-native';
+import Text from '../../components/Text';
+import TextInput from '../../components/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NetInfo from '@react-native-community/netinfo';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
-import { colors, spacing, radii, typography } from '../../theme/tokens';
+import { colors, spacing, radii, typography, inputStyle } from '../../theme/tokens';
 import { api } from '../../api/client';
 import { queueAction } from '../../utils/offlineQueue';
 import { useAuth } from '../../context/AuthContext';
@@ -502,11 +504,14 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   quickExitText: { color: colors.white, fontWeight: '700', fontSize: 16 },
+  // White note with a red edge, like the website's.
   exitNote: {
     ...typography.body,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     padding: spacing.md,
-    borderRadius: radii.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.danger,
+    borderRadius: radii.sm,
     marginBottom: spacing.lg,
   },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.sm },
@@ -525,13 +530,5 @@ const styles = StyleSheet.create({
   error: { ...typography.body, color: colors.danger, fontWeight: '600', marginTop: spacing.md },
   whoSees: { marginTop: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
   fieldLabel: { ...typography.bodyMuted, fontSize: 16, marginBottom: spacing.xs, marginTop: spacing.sm },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    fontSize: 18,
-    color: colors.text,
-    backgroundColor: colors.white,
-  },
+  input: inputStyle,
 });

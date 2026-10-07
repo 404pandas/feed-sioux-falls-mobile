@@ -15,12 +15,15 @@ import { colors, spacing } from '../theme/tokens';
 // closes the keyboard.
 //
 // scroll={false} is for screens that put their own FlatList inside.
-export default function Screen({ children, scroll = true, refreshControl, edges = ['bottom'] }) {
+// padded={false} is for the public screens, whose colored bands run edge
+// to edge like the website's.
+export default function Screen({ children, scroll = true, padded = true, refreshControl, edges = ['bottom'], scrollRef }) {
   return (
     <SafeAreaView style={styles.safe} edges={edges}>
       {scroll ? (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          ref={scrollRef}
+          contentContainerStyle={padded ? styles.scrollContent : styles.flush}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
@@ -40,6 +43,7 @@ const styles = StyleSheet.create({
   // flexGrow lets short screens still fill the height (so layouts that
   // spread things out with space-between keep working) while tall screens
   // scroll instead of getting cut off.
-  scrollContent: { flexGrow: 1, padding: spacing.lg, paddingBottom: spacing.xxl },
+  scrollContent: { flexGrow: 1, padding: 20, paddingBottom: spacing.xxl },
   content: { flex: 1, padding: spacing.lg },
+  flush: { flexGrow: 1 },
 });
