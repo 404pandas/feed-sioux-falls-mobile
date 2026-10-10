@@ -35,6 +35,30 @@ export function formatOutreachDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+// "July 18, 2026" without relying on the phone's time-zone support (not every
+// Android build has it). Shifting 6 hours puts any Sioux Falls daytime moment
+// on its local calendar day.
+function sfDate(iso, shiftHours) {
+  const d = new Date(new Date(iso).getTime() - shiftHours * 3600000);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
+
+// People served comes in two parts that are never blended into one number:
+// real hand counts (every person tapped in at an outreach, since counting
+// began) and Feed Sioux Falls' estimate for the time before that. Works with
+// an older backend too (then everything is treated as counted).
+export function servedParts(summary) {
+  const p = summary?.peopleServed || {};
+  return {
+    counted: p.counted ?? p.allTime ?? 0,
+    since: p.countedSince ? sfDate(p.countedSince, 6) : null,
+    estimated: p.estimated || 0,
+    through: p.estimatedThrough ? sfDate(p.estimatedThrough, 0) : null,
+  };
+}
+
 export function StatusPill({ status }) {
   if (status === 'out') return <Pill tone="out" label="Out right now" />;
   if (status === 'low') return <Pill tone="low" label="Running low" />;

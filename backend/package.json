@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/utils/seed.js",
-    "test": "node --test test/api.test.js"
+    "test": "node --test test/api.test.js",
+    "import:headcounts": "node src/utils/importHeadcounts.js"
   },
   "dependencies": {
     "bcryptjs": "2.4.3",

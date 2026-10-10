@@ -12,6 +12,7 @@ const ContactMessage = require('../models/ContactMessage');
 const SurveyResponse = require('../models/SurveyResponse');
 const SurveyContactRequest = require('../models/SurveyContactRequest');
 const AuditLog = require('../models/AuditLog');
+const HistoricalEstimate = require('../models/HistoricalEstimate');
 const { SURVEY_LANGUAGES } = require('../utils/surveyQuestions');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
@@ -185,9 +186,25 @@ const COLLECTIONS = {
       f('timestamp', 'Time', 'date', { required: true }),
       f('distributionEvent', 'Event', 'ref', { ref: 'events', required: true }),
       f('countIncrement', 'People (+/-)', 'number', { required: true }),
+      f('source', 'How counted', 'enum', { options: ['tap', 'import'] }),
       f('createdBy', 'By', 'ref', { ref: 'users', readOnly: true }),
     ],
-    filters: ['distributionEvent'],
+    filters: ['distributionEvent', 'source'],
+  },
+
+  estimates: {
+    model: HistoricalEstimate,
+    label: 'Estimate Before Counting',
+    description: 'The estimated number of people served before volunteers started hand-counting. Shown on the website and app as an estimate, separate from real counts, and never included in date-range reports.',
+    title: 'peopleServed',
+    search: [],
+    sort: { throughDate: -1 },
+    fields: [
+      f('peopleServed', 'People served (estimate)', 'number', { required: true }),
+      f('throughDate', 'Estimate covers through', 'date', { required: true, dateOnly: true }),
+      f('note', 'Note', 'text'),
+      f('updatedAt', 'Last changed', 'date', { readOnly: true }),
+    ],
   },
 
   purchases: {
