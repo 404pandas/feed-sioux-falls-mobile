@@ -7,3 +7,4 @@ skills-lock.json
 
 # Safety backups written by the headcount import
 backups/
+state.json
