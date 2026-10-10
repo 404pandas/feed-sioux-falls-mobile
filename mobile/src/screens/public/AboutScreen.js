@@ -9,7 +9,7 @@ import Lift from '../../components/Lift';
 import PublicFooter from '../../components/PublicFooter';
 import { ContactCard } from '../../components/SupportForms';
 import { Band, PageTitle, HandsArt, Mark } from '../../components/Brand';
-import { formatNumber, usePublicSummary } from '../../components/PublicData';
+import { formatNumber, servedParts, usePublicSummary } from '../../components/PublicData';
 import { ORG } from '../../config/org';
 import { brand, liftSmall, radii, spacing, typography } from '../../theme/tokens';
 import { open } from './parts';
@@ -52,9 +52,13 @@ export default function AboutScreen({ navigation }) {
           Every Saturday our {ORG.outreach.name} heads to {ORG.outreach.where} with food, hygiene kits, clothing, and winter
           gear for neighbors living outside.
         </Text>
-        {summary && summary.peopleServed.allTime > 0 && (
+        {summary && servedParts(summary).counted > 0 && (
           <Text style={[typography.body, { marginBottom: spacing.md }]}>
-            Our volunteers count every person they serve. So far that's <Mark>{formatNumber(summary.peopleServed.allTime)} people</Mark>.
+            Volunteers count every person they serve, one at a time.{' '}
+            {servedParts(summary).since ? `Since ${servedParts(summary).since}, that's` : "So far that's"}{' '}
+            <Mark>{formatNumber(servedParts(summary).counted)} people</Mark>.
+            {servedParts(summary).estimated > 0 &&
+              ` Before counting began, Feed Sioux Falls estimates about ${formatNumber(servedParts(summary).estimated)} more were served (an estimate, not a count).`}
           </Text>
         )}
         <Card style={{ padding: 0, overflow: 'hidden', backgroundColor: brand.tealSoft }}>

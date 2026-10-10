@@ -6,10 +6,23 @@ const PurchaseLog = require('../models/PurchaseLog');
 const MonthlyBudget = require('../models/MonthlyBudget');
 const Donation = require('../models/Donation');
 const Item = require('../models/Item');
+const HistoricalEstimate = require('../models/HistoricalEstimate');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 
 const router = express.Router();
+
+// Shown under every report (screen and PDF). People served in a report are
+// real hand counts only; the estimate for the years before counting started
+// is never mixed in, and the note says so.
+async function methodologyNote() {
+  const base =
+    'People served = people hand-counted by volunteers at each outreach, one at a time. It counts visits, so someone who came twice is counted twice.';
+  const estimate = await HistoricalEstimate.findOne().sort({ throughDate: -1 }).lean();
+  if (!estimate) return base;
+  const through = new Date(estimate.throughDate).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' });
+  return `${base} Before counting began, Feed Sioux Falls estimates about ${estimate.peopleServed.toLocaleString('en-US')} people were served through ${through}. That estimate is not included in this report's numbers.`;
+}
 
 // Reports are for grant applications and board updates - admins only.
 router.use(requireAuth, requireAdmin);
@@ -202,8 +215,7 @@ router.get('/custom', asyncHandler(async (req, res) => {
       avgPeoplePerEvent: eventsHeld > 0 ? Math.round((peopleServed / eventsHeld) * 10) / 10 : 0,
       costPerPersonServed: peopleServed > 0 ? Math.round((totalSpent / peopleServed) * 100) / 100 : null,
     },
-    methodologyNote:
-      'peopleServed is a tally of visits recorded by staff, not a count of unduplicated individuals - repeat visitors are not distinguished from new ones.',
+    methodologyNote: await methodologyNote(),
     peopleServedByPeriod,
     eventsByPeriod,
     spendByPeriod,

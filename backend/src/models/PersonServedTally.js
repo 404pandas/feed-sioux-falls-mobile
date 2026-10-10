@@ -26,6 +26,11 @@ const personServedTallySchema = new mongoose.Schema(
     timestamp: { type: Date, required: true, default: Date.now },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     synced: { type: Boolean, default: true },
+    // How this count got here: 'tap' = the people-served counter during an
+    // event (the default, and what every app version sends); 'import' =
+    // copied in from a volunteer's paper/spreadsheet log for that event.
+    // Both are real hand counts - estimates never go in this collection.
+    source: { type: String, enum: ['tap', 'import'], default: 'tap' },
   },
   { timestamps: true }
 );

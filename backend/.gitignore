@@ -4,3 +4,6 @@ node_modules/
 npm-debug.log*
 .claude/
 skills-lock.json
+
+# Safety backups written by the headcount import
+backups/

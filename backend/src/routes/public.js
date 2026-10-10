@@ -4,6 +4,7 @@ const DistributionEvent = require('../models/DistributionEvent');
 const PersonServedTally = require('../models/PersonServedTally');
 const InventoryTransaction = require('../models/InventoryTransaction');
 const SurveyResponse = require('../models/SurveyResponse');
+const HistoricalEstimate = require('../models/HistoricalEstimate');
 const Item = require('../models/Item');
 const asyncHandler = require('../utils/asyncHandler');
 
@@ -57,14 +58,18 @@ async function buildSummary() {
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const eightWeeksAgo = new Date(now.getTime() - 8 * 7 * 24 * 60 * 60 * 1000);
 
-  const [pastEvents, monthEventIds, yearEventIds, nextEvents, items, surveys] = await Promise.all([
-    DistributionEvent.countDocuments({ date: { $lte: now } }),
+  const [countedEventIds, monthEventIds, yearEventIds, nextEvents, items, surveys, estimate, firstTally] = await Promise.all([
+    // Outreach days that actually have a hand count (not every scheduled date).
+    PersonServedTally.distinct('distributionEvent'),
     DistributionEvent.find({ date: { $gte: monthStart, $lte: now } }).distinct('_id'),
     DistributionEvent.find({ date: { $gte: yearStart, $lte: now } }).distinct('_id'),
     DistributionEvent.find({ date: { $gte: now } }).sort({ date: 1 }).limit(1).lean(),
     Item.find({ hideFromPublic: { $ne: true } }),
     SurveyResponse.estimatedDocumentCount(),
+    HistoricalEstimate.findOne().sort({ throughDate: -1 }).lean(),
+    PersonServedTally.findOne().sort({ timestamp: 1 }).select('timestamp').lean(),
   ]);
+  const pastEvents = countedEventIds.length;
 
   const [servedAllTime, servedThisMonth, servedThisYear, itemsGivenAllTime, itemsGivenThisMonth, demand] =
     await Promise.all([
@@ -116,7 +121,19 @@ async function buildSummary() {
   const next = nextEvents[0];
 
   return {
-    peopleServed: { allTime: servedAllTime, thisYear: servedThisYear, thisMonth: servedThisMonth },
+    // counted = real hand counts (every tap, plus paper logs copied in).
+    // estimated = Feed Sioux Falls' estimate for the time before counting
+    // started; shown separately so nobody mistakes it for a count.
+    // allTime = the two together. thisYear / thisMonth are counts only.
+    peopleServed: {
+      allTime: servedAllTime + (estimate?.peopleServed || 0),
+      counted: servedAllTime,
+      countedSince: firstTally ? firstTally.timestamp : null,
+      estimated: estimate?.peopleServed || 0,
+      estimatedThrough: estimate ? estimate.throughDate : null,
+      thisYear: servedThisYear,
+      thisMonth: servedThisMonth,
+    },
     itemsGiven: { allTime: itemsGivenAllTime, thisMonth: itemsGivenThisMonth },
     outreachEvents: pastEvents,
     surveysCollected: surveys,

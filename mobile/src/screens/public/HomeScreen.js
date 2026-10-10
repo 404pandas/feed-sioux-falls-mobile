@@ -5,7 +5,7 @@ import Screen from '../../components/Screen';
 import Button from '../../components/Button';
 import PublicFooter from '../../components/PublicFooter';
 import { Band, HandsArt, Mark, SectionHead, EmptyNote, TextLink } from '../../components/Brand';
-import { NeedsList, formatNumber, formatOutreachDate, usePublicSummary } from '../../components/PublicData';
+import { NeedsList, formatNumber, formatOutreachDate, servedParts, usePublicSummary } from '../../components/PublicData';
 import { ORG } from '../../config/org';
 import { brand, spacing, typography } from '../../theme/tokens';
 import { InfoCard, GiveTile, open } from './parts';
@@ -37,18 +37,17 @@ export default function HomeScreen({ navigation }) {
       </View>
 
       <Band tone="white">
-        {summary ? (
+        {summary && servedParts(summary).counted > 0 ? (
           <>
             <Text style={{ fontFamily: 'display', fontSize: 28, lineHeight: 38 }}>
-              So far, neighbors helping neighbors have served <Mark>{formatNumber(summary.peopleServed.allTime)} people</Mark>{' '}
-              and handed out <Mark>{formatNumber(summary.itemsGiven.allTime)} items</Mark> across{' '}
-              <Mark>{formatNumber(summary.outreachEvents)} outreach days</Mark>.
+              {servedParts(summary).since ? `Since ${servedParts(summary).since}, volunteers` : 'Volunteers'} have hand-counted{' '}
+              <Mark>{formatNumber(servedParts(summary).counted)} people</Mark> across{' '}
+              <Mark>{formatNumber(summary.outreachEvents)} outreach days</Mark>, one person at a time.
             </Text>
             <Text style={[typography.bodyMuted, { marginTop: spacing.md }]}>
-              Counted live by our volunteers, one person at a time.
-              {summary.peopleServed.thisYear > 0 && ` ${formatNumber(summary.peopleServed.thisYear)} this year`}
-              {summary.peopleServed.thisMonth > 0 && `, ${formatNumber(summary.peopleServed.thisMonth)} this month`}
-              {summary.peopleServed.thisYear > 0 && '.'}
+              {servedParts(summary).estimated > 0 &&
+                `Before counting began, Feed Sioux Falls estimates about ${formatNumber(servedParts(summary).estimated)} more people were served. That number is an estimate, not a count. `}
+              {summary.peopleServed.thisMonth > 0 && `${formatNumber(summary.peopleServed.thisMonth)} people counted so far this month.`}
             </Text>
           </>
         ) : (

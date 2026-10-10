@@ -18,6 +18,7 @@ if (!URI || /prod|atlas|mongodb\+srv/i.test(URI)) {
 
 const app = require('../src/server');
 const User = require('../src/models/User');
+const HistoricalEstimate = require('../src/models/HistoricalEstimate');
 
 let server;
 let base;
@@ -146,9 +147,16 @@ test('roles are still enforced on the old routes', async () => {
 });
 
 test('public summary: totals and needs, nothing private', async () => {
+  // The estimate for before counting began is reported apart from real counts.
+  await HistoricalEstimate.create({ peopleServed: 1000, throughDate: new Date('2026-07-17T00:00:00Z') });
   const r = await call('GET', '/api/public/summary');
   assert.equal(r.status, 200);
-  assert.equal(r.data.peopleServed.allTime, 6);
+  assert.equal(r.data.peopleServed.counted, 6);
+  assert.equal(r.data.peopleServed.estimated, 1000);
+  assert.equal(r.data.peopleServed.allTime, 1006);
+  assert.equal(r.data.peopleServed.thisYear, 6, 'this year = hand counts only');
+  assert.ok(r.data.peopleServed.countedSince);
+  assert.equal(r.data.outreachEvents, 1, 'only events with a hand count');
   assert.equal(r.data.itemsGiven.allTime, 2);
   assert.equal(r.data.needs[0].name, 'Socks (crew)');
   assert.equal(r.data.needs[0].status, 'low');
