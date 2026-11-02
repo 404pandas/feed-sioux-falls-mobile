@@ -80,7 +80,8 @@ export default function StaffHomeScreen({ navigation }) {
     const jobs = [
       api.getItems().then(setItems).catch(() => setItems((v) => v || [])),
       api.getPublicSummary().then(setSummary).catch(() => {}),
-      countUnreadChat(user?._id).then(setUnreadChat).catch(() => {}),
+      Promise.all([countUnreadChat(user?._id).catch(() => 0), api.getInboxUnread().then((r) => r.count).catch(() => 0)])
+        .then(([team, inbox]) => setUnreadChat(team + inbox)),
     ];
     if (isAdmin) {
       jobs.push(api.getCurrentBudget().then(setBudget).catch(() => {}));
@@ -126,15 +127,15 @@ export default function StaffHomeScreen({ navigation }) {
         <ActionTile
           tone="heart"
           icon="chat"
-          title="Team chat"
-          sub={unreadChat ? `${unreadChat} new message${unreadChat === 1 ? '' : 's'}` : 'Talk with volunteers and admins'}
-          onPress={() => navigation.navigate('TeamChat')}
+          title="Messages"
+          sub={unreadChat ? `${unreadChat} new` : 'Write to volunteers and admins'}
+          onPress={() => navigation.navigate('Inbox')}
         />
         {isAdmin && (
           <>
             <ActionTile
               icon="mail"
-              title="Messages"
+              title="Help requests"
               sub={inbox ? `${inbox.messages} new · ${inbox.contactRequests} asked to be contacted` : 'From the website and app'}
               onPress={() => navigation.navigate('Messages')}
             />

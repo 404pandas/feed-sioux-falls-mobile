@@ -18,7 +18,7 @@ export const KINDS = [
   { key: 'pantry', label: 'Pantry news', sub: 'When the pantry is restocked or something changes.' },
   { key: 'needs', label: '"We need…" requests', sub: 'When an item runs out and could use a donation.' },
   { key: 'staff', label: 'Notices from admins', sub: 'Messages from admins to volunteers.', staffOnly: true },
-  { key: 'chat', label: 'Team chat', sub: 'New messages in the team chat.', staffOnly: true },
+  { key: 'chat', label: 'Team chat & messages', sub: 'New team chat messages, and messages sent to you.', staffOnly: true },
 ];
 
 const PREFS_KEY = 'fsf_notification_prefs';
@@ -167,12 +167,13 @@ export async function offerToStaffOnce() {
   return updatePrefs({ enabled: true });
 }
 
-// Which screen a tapped notification opens. Staff-only screens fall back to
-// home for anyone not logged in as staff.
+// Which screen a tapped notification opens: { name, params } or null.
+// Staff-only screens are skipped for anyone not logged in as staff.
 export function screenForNotification(data, isStaff) {
   const screen = data?.screen;
   if (!screen) return null;
-  if (['TeamChat', 'StaffHome'].includes(screen)) return isStaff ? screen : null;
-  if (['Help', 'Give', 'Home'].includes(screen)) return screen === 'Home' && isStaff ? 'StaffHome' : screen;
+  if (screen === 'Thread') return isStaff && data.threadId ? { name: 'Thread', params: { threadId: data.threadId } } : null;
+  if (['TeamChat', 'StaffHome'].includes(screen)) return isStaff ? { name: screen } : null;
+  if (['Help', 'Give', 'Home'].includes(screen)) return { name: screen === 'Home' && isStaff ? 'StaffHome' : screen };
   return null;
 }

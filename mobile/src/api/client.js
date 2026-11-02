@@ -180,6 +180,14 @@ export const api = {
   updatePerson: (id, changes) => request(`/api/admin/users/${id}`, { method: 'PATCH', body: changes }),
   deletePerson: (id) => request(`/api/admin/users/${id}`, { method: 'DELETE' }),
 
+  // Staff - messages to chosen people (conversations)
+  getInboxPeople: () => request('/api/inbox/people'),
+  getInbox: () => request('/api/inbox'),
+  getInboxUnread: () => request('/api/inbox/unread'),
+  startConversation: (recipientIds, body) => request('/api/inbox', { method: 'POST', body: { recipientIds, body } }),
+  getConversation: (id) => request(`/api/inbox/${id}`),
+  replyToConversation: (id, body) => request(`/api/inbox/${id}`, { method: 'POST', body: { body } }),
+
   // Staff - team chat
   getTeamChat: (before) => request(`/api/team-chat${before ? `?before=${encodeURIComponent(before)}` : ''}`),
   postTeamChat: (body) => request('/api/team-chat', { method: 'POST', body: { body } }),

@@ -413,3 +413,35 @@ test('people: admins add, edit, reset PINs, and remove access; a new PIN logs ou
   assert.equal((await call('DELETE', `/api/admin/users/${id}`, { token: tokens.admin })).status, 200);
   assert.equal((await call('PATCH', `/api/admin/users/${ids.admin}`, { token: tokens.admin, body: { active: false } })).status, 400);
 });
+
+test('messages: pick people, replies reach everyone in it, outsiders can\'t read', async () => {
+  // A second volunteer, so "all volunteers" means more than one person.
+  const v2 = await makeUser('Vic Volunteer', 'volunteer', '4444');
+  const v2Token = (await call('POST', '/api/auth/login', { body: { userId: String(v2._id), pin: '4444' } })).data.token;
+
+  const people = await call('GET', '/api/inbox/people', { token: tokens.admin });
+  assert.ok(people.data.every((p) => p.role !== 'neighbor' && String(p._id) !== String(ids.admin)));
+  assert.equal((await call('GET', '/api/inbox', { token: tokens.neighbor })).status, 403);
+  assert.equal((await call('POST', '/api/inbox', { token: tokens.admin, body: { recipientIds: [], body: 'hi' } })).status, 400);
+
+  // Admin writes to one volunteer only (the other was unticked).
+  const sent = await call('POST', '/api/inbox', { token: tokens.admin, body: { recipientIds: [String(ids.volunteer)], body: 'Can you bring the van Saturday?' } });
+  assert.equal(sent.status, 201);
+  const threadId = sent.data.thread._id;
+
+  assert.equal((await call('GET', '/api/inbox/unread', { token: tokens.volunteer })).data.count, 1);
+  assert.equal((await call('GET', `/api/inbox/${threadId}`, { token: v2Token })).status, 404);
+
+  const opened = await call('GET', `/api/inbox/${threadId}`, { token: tokens.volunteer });
+  assert.equal(opened.data.messages[0].author.name, 'Ada Admin');
+  assert.equal((await call('GET', '/api/inbox/unread', { token: tokens.volunteer })).data.count, 0);
+
+  await call('POST', `/api/inbox/${threadId}`, { token: tokens.volunteer, body: { body: 'Yes, 9:30.' } });
+  const inbox = await call('GET', '/api/inbox', { token: tokens.admin });
+  assert.equal(inbox.data[0].lastMessage, 'Yes, 9:30.');
+  assert.equal(inbox.data[0].unread, true);
+
+  // Writing to the same person again continues the same conversation.
+  const again = await call('POST', '/api/inbox', { token: tokens.admin, body: { recipientIds: [String(ids.volunteer)], body: 'Thanks!' } });
+  assert.equal(again.data.thread._id, threadId);
+});

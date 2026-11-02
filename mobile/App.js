@@ -38,6 +38,9 @@ import SurveyResultsScreen from './src/screens/admin/SurveyResultsScreen';
 import MessagesScreen from './src/screens/admin/MessagesScreen';
 import SendNotificationScreen from './src/screens/admin/SendNotificationScreen';
 import TeamChatScreen from './src/screens/staff/TeamChatScreen';
+import InboxScreen from './src/screens/staff/InboxScreen';
+import NewMessageScreen from './src/screens/staff/NewMessageScreen';
+import ThreadScreen from './src/screens/staff/ThreadScreen';
 import ReceiptScreen from './src/screens/staff/ReceiptScreen';
 import PeopleScreen from './src/screens/admin/PeopleScreen';
 import NotificationSettingsScreen from './src/screens/shared/NotificationSettingsScreen';
@@ -139,7 +142,10 @@ function StaffStack() {
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="Tabs" component={StaffTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Survey" component={SurveyScreen} options={surveyOptions} />
-      <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: 'Messages' }} />
+      <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: 'Help requests' }} />
+      <Stack.Screen name="Inbox" component={InboxScreen} options={{ title: 'Messages' }} />
+      <Stack.Screen name="NewMessage" component={NewMessageScreen} options={{ title: 'New message' }} />
+      <Stack.Screen name="Thread" component={ThreadScreen} options={{ title: 'Conversation' }} />
       <Stack.Screen name="TeamChat" component={TeamChatScreen} options={{ title: 'Team chat' }} />
       <Stack.Screen name="SendNotification" component={SendNotificationScreen} options={{ title: 'Send a notification' }} />
       <Stack.Screen name="Notifications" component={NotificationSettingsScreen} options={{ title: 'Notifications' }} />
@@ -176,10 +182,10 @@ function useNotificationTaps(isStaff, loading) {
   isStaffRef.current = isStaff;
 
   function open(response) {
-    const screen = screenForNotification(response?.notification?.request?.content?.data, isStaffRef.current);
-    if (!screen) return;
-    if (navigationRef.isReady()) navigationRef.navigate(screen);
-    else pending.current = screen;
+    const target = screenForNotification(response?.notification?.request?.content?.data, isStaffRef.current);
+    if (!target) return;
+    if (navigationRef.isReady()) navigationRef.navigate(target.name, target.params);
+    else pending.current = target;
   }
 
   useEffect(() => {
@@ -191,7 +197,7 @@ function useNotificationTaps(isStaff, loading) {
 
   return function onReady() {
     if (pending.current) {
-      navigationRef.navigate(pending.current);
+      navigationRef.navigate(pending.current.name, pending.current.params);
       pending.current = null;
     }
   };
