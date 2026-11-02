@@ -37,7 +37,8 @@ function runSerially(task) {
   return result;
 }
 
-// 4xx responses other than "log in again" (401), "timed out" (408) and
+// 4xx responses other than "log in again" (401 - the app asks the person to
+// log back in, and the queue sends after that), "timed out" (408) and
 // "slow down" (429) mean the request itself will never be accepted.
 function isPermanentFailure(err) {
   return typeof err.status === 'number' && err.status >= 400 && err.status < 500 && ![401, 408, 429].includes(err.status);

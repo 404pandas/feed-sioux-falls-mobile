@@ -13,6 +13,9 @@ const SurveyResponse = require('../models/SurveyResponse');
 const SurveyContactRequest = require('../models/SurveyContactRequest');
 const AuditLog = require('../models/AuditLog');
 const HistoricalEstimate = require('../models/HistoricalEstimate');
+const SentNotification = require('../models/SentNotification');
+const StaffMessage = require('../models/StaffMessage');
+const Receipt = require('../models/Receipt');
 const { SURVEY_LANGUAGES } = require('../utils/surveyQuestions');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
@@ -246,6 +249,8 @@ const COLLECTIONS = {
     async beforeDelete(doc) {
       const used = await PurchaseLog.countDocuments({ monthlyBudget: doc._id });
       if (used) throw new HttpError(400, `${used} purchase(s) are logged against this month. Move or delete them first.`);
+      const receipts = await Receipt.countDocuments({ month: doc.month });
+      if (receipts) throw new HttpError(400, `${receipts} receipt(s) are dated this month. Delete them on the Budget page first.`);
     },
   },
 
@@ -344,6 +349,68 @@ const COLLECTIONS = {
       f('fields', 'Fields changed', 'json', { readOnly: true }),
     ],
     filters: ['collectionKey', 'action'],
+  },
+
+  receipts: {
+    model: Receipt,
+    label: 'Receipts',
+    description: 'Store receipts counted against each month\'s budget. Add, edit, and see photos on the Budget page.',
+    title: 'store',
+    search: ['store', 'note'],
+    sort: { date: -1 },
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    fields: [
+      f('date', 'Date', 'date', { readOnly: true, dateOnly: true }),
+      f('store', 'Store', 'string', { readOnly: true }),
+      f('total', 'Total ($)', 'number', { readOnly: true }),
+      f('category', 'Category', 'enum', { readOnly: true, options: Receipt.CATEGORIES }),
+      f('note', 'Note', 'text', { readOnly: true }),
+      f('hasPhoto', 'Photo', 'boolean', { readOnly: true }),
+      f('lines', 'Items restocked', 'json', { readOnly: true }),
+      f('uploadedBy', 'Added by', 'ref', { ref: 'users', readOnly: true }),
+    ],
+    filters: ['category'],
+  },
+
+  sentNotifications: {
+    model: SentNotification,
+    label: 'Sent Notifications',
+    description: 'Every push notification an admin sent, who sent it, and how many phones it went to. Read-only.',
+    title: 'title',
+    search: ['title', 'body'],
+    sort: { createdAt: -1 },
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    fields: [
+      f('createdAt', 'Sent', 'date', { readOnly: true }),
+      f('sentBy', 'Sent by', 'ref', { ref: 'users', readOnly: true }),
+      f('audience', 'Sent to', 'enum', { readOnly: true, options: ['staff', 'everyone'] }),
+      f('kind', 'Kind', 'enum', { readOnly: true, options: ['outreach', 'pantry', 'needs', 'staff'] }),
+      f('title', 'Title', 'string', { readOnly: true }),
+      f('body', 'Message', 'text', { readOnly: true }),
+      f('recipients', 'Phones', 'number', { readOnly: true }),
+    ],
+    filters: ['audience', 'kind'],
+  },
+
+  staffMessages: {
+    model: StaffMessage,
+    label: 'Team Chat',
+    description: 'Messages volunteers and admins posted in the app\'s team chat. Delete anything that shouldn\'t be there.',
+    title: 'body',
+    search: ['body'],
+    sort: { createdAt: -1 },
+    canCreate: false,
+    canUpdate: false,
+    fields: [
+      f('createdAt', 'Posted', 'date', { readOnly: true }),
+      f('author', 'By', 'ref', { ref: 'users', readOnly: true }),
+      f('body', 'Message', 'text', { readOnly: true }),
+    ],
+    filters: [],
   },
 };
 

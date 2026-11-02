@@ -8,6 +8,7 @@ import Lift from '../../components/Lift';
 import { EmptyNote, TextLink } from '../../components/Brand';
 import { NeedCard, formatNumber, formatOutreachDate } from '../../components/PublicData';
 import { api } from '../../api/client';
+import { countUnreadChat } from './TeamChatScreen';
 import { useAuth } from '../../context/AuthContext';
 import { brand, colors, lift, radii, spacing, typography } from '../../theme/tokens';
 
@@ -72,12 +73,14 @@ export default function StaffHomeScreen({ navigation }) {
   const [summary, setSummary] = useState(null);
   const [budget, setBudget] = useState(null);
   const [inbox, setInbox] = useState(null);
+  const [unreadChat, setUnreadChat] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     const jobs = [
       api.getItems().then(setItems).catch(() => setItems((v) => v || [])),
       api.getPublicSummary().then(setSummary).catch(() => {}),
+      countUnreadChat(user?._id).then(setUnreadChat).catch(() => {}),
     ];
     if (isAdmin) {
       jobs.push(api.getCurrentBudget().then(setBudget).catch(() => {}));
@@ -88,7 +91,7 @@ export default function StaffHomeScreen({ navigation }) {
       );
     }
     await Promise.all(jobs);
-  }, [isAdmin]);
+  }, [isAdmin, user?._id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -120,17 +123,31 @@ export default function StaffHomeScreen({ navigation }) {
         <ActionTile tone="teal" icon="counter" title="Count people" sub="Tap once per person served" onPress={() => navigation.navigate('Count')} />
         <ActionTile tone="coin" icon="box" title="Inventory" sub="Hand out, restock, check what's low" onPress={() => navigation.navigate('Inventory')} />
         <ActionTile icon="clipboard" title="Take a survey" sub="With someone, or type in a paper one" onPress={() => navigation.navigate('Survey')} />
-        {isAdmin ? (
-          <ActionTile
-            tone="heart"
-            icon="mail"
-            title="Messages"
-            sub={inbox ? `${inbox.messages} new · ${inbox.contactRequests} asked to be contacted` : 'From the website and app'}
-            onPress={() => navigation.navigate('Messages')}
-          />
-        ) : (
-          <ActionTile tone="heart" icon="globe" title="Public website" sub="What neighbors see" onPress={() => navigation.navigate('PublicHome')} />
+        <ActionTile
+          tone="heart"
+          icon="chat"
+          title="Team chat"
+          sub={unreadChat ? `${unreadChat} new message${unreadChat === 1 ? '' : 's'}` : 'Talk with volunteers and admins'}
+          onPress={() => navigation.navigate('TeamChat')}
+        />
+        {isAdmin && (
+          <>
+            <ActionTile
+              icon="mail"
+              title="Messages"
+              sub={inbox ? `${inbox.messages} new · ${inbox.contactRequests} asked to be contacted` : 'From the website and app'}
+              onPress={() => navigation.navigate('Messages')}
+            />
+            <ActionTile icon="bell" title="Send a notice" sub="Push a notification to phones" onPress={() => navigation.navigate('SendNotification')} />
+          </>
         )}
+        <ActionTile icon="wallet" title="Add a receipt" sub="Snap it, and it's counted in the budget" onPress={() => navigation.navigate('Receipt')} />
+        <ActionTile
+          icon={isAdmin ? 'chart' : 'globe'}
+          title={isAdmin ? 'Budget' : 'Public website'}
+          sub={isAdmin ? 'Receipts, spending, QuickBooks export' : 'What neighbors see'}
+          onPress={() => navigation.navigate(isAdmin ? 'Budget' : 'PublicHome')}
+        />
       </View>
 
       <Text style={[typography.h2, { marginTop: spacing.lg, marginBottom: 14 }]}>At a glance</Text>

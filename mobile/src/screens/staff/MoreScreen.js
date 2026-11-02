@@ -12,9 +12,9 @@ import { websiteUrl } from '../../config/org';
 // logins, Change log) are website-only, so they open the website.
 const RUN = [
   { route: 'Messages', icon: 'mail', title: 'Messages', sub: '"I need help" requests and notes from the contact form' },
+  { route: 'SendNotification', icon: 'bell', title: 'Send a notification', sub: 'To volunteers, or to everyone with the app' },
   { route: 'SurveyResults', icon: 'chart', title: 'Survey results', sub: 'Totals and people who asked to be contacted' },
   { route: 'ManageItems', icon: 'edit', title: 'Edit items', sub: 'Add, rename, set low marks and costs' },
-  { route: 'Budget', icon: 'wallet', title: 'Budget', sub: "This month's spending" },
   { route: 'Reports', icon: 'chart', title: 'Reports', sub: 'Charts and PDFs for grants and the board' },
   { route: 'EventsList', icon: 'calendar', title: 'Past events', sub: 'Counts and notes from each outreach' },
 ];
@@ -62,14 +62,24 @@ export default function MoreScreen({ navigation }) {
             <Row key={r.route} {...r} onPress={() => navigation.navigate(r.route)} />
           ))}
           <Group title="Database" />
+          <Row icon="people" title="People & logins" sub="Add admins and volunteers, reset PINs, remove access" onPress={() => navigation.navigate('People')} />
           <Row
-            icon="people"
-            title="People, logins & all data"
+            icon="list"
+            title="All data & change log"
             sub="On the website - opens your browser"
             onPress={() => Linking.openURL(`${websiteUrl}/data`)}
           />
         </>
       )}
+      <Group title="Team" />
+      <Row icon="chat" title="Team chat" sub="Talk with volunteers and admins" onPress={() => navigation.navigate('TeamChat')} />
+      <Row
+        icon="wallet"
+        title="Receipts & budget"
+        sub={isAdmin ? 'Add receipts, change the budget, export for QuickBooks' : 'Add a receipt from a shopping trip'}
+        onPress={() => navigation.navigate('Budget')}
+      />
+      <Row icon="bell" title="Notifications" sub="What this phone gets, and privacy" onPress={() => navigation.navigate('Notifications')} />
       <Group title="Public" />
       <Row icon="globe" title="Public website" sub="What neighbors see" onPress={() => navigation.navigate('PublicHome')} />
       <View style={{ height: spacing.lg }} />

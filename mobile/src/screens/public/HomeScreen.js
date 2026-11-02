@@ -74,6 +74,13 @@ export default function HomeScreen({ navigation }) {
           }`}
         >
           <Button title="Directions" icon="pin" variant="outline" onPress={open(ORG.outreach.mapUrl)} style={{ alignSelf: 'flex-start', marginTop: 8 }} />
+          <Button
+            title="Remind me on Saturdays"
+            icon="bell"
+            variant="outline"
+            onPress={() => navigation.navigate('Notifications')}
+            style={{ alignSelf: 'flex-start', marginTop: 8 }}
+          />
         </InfoCard>
         <TextLink title="More help, and how to reach us" onPress={() => navigation.navigate('Help')} />
       </Band>

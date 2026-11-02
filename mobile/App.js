@@ -1,18 +1,21 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Alert, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
 import { useFonts, Fredoka_500Medium, Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
 import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from '@expo-google-fonts/atkinson-hyperlegible';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { brand, colors } from './src/theme/tokens';
 import AppHeader from './src/components/AppHeader';
 import TabBar from './src/components/TabBar';
+import UpdateBanner from './src/components/UpdateBanner';
+import { screenForNotification } from './src/notifications';
 import Button from './src/components/Button';
 
 import HomeScreen from './src/screens/public/HomeScreen';
@@ -33,9 +36,15 @@ import EventsListScreen from './src/screens/admin/EventsListScreen';
 import EventDetailScreen from './src/screens/admin/EventDetailScreen';
 import SurveyResultsScreen from './src/screens/admin/SurveyResultsScreen';
 import MessagesScreen from './src/screens/admin/MessagesScreen';
+import SendNotificationScreen from './src/screens/admin/SendNotificationScreen';
+import TeamChatScreen from './src/screens/staff/TeamChatScreen';
+import ReceiptScreen from './src/screens/staff/ReceiptScreen';
+import PeopleScreen from './src/screens/admin/PeopleScreen';
+import NotificationSettingsScreen from './src/screens/shared/NotificationSettingsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navigationRef = createNavigationContainerRef();
 
 // Every screen uses the website-style header (components/AppHeader).
 const screenOptions = {
@@ -93,6 +102,7 @@ function PublicStack() {
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="PublicTabs" component={PublicTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Survey" component={SurveyScreen} options={surveyOptions} />
+      <Stack.Screen name="Notifications" component={NotificationSettingsScreen} options={{ title: 'Notifications' }} />
       {!user && <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Log in' }} />}
     </Stack.Navigator>
   );
@@ -130,9 +140,14 @@ function StaffStack() {
       <Stack.Screen name="Tabs" component={StaffTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Survey" component={SurveyScreen} options={surveyOptions} />
       <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: 'Messages' }} />
+      <Stack.Screen name="TeamChat" component={TeamChatScreen} options={{ title: 'Team chat' }} />
+      <Stack.Screen name="SendNotification" component={SendNotificationScreen} options={{ title: 'Send a notification' }} />
+      <Stack.Screen name="Notifications" component={NotificationSettingsScreen} options={{ title: 'Notifications' }} />
       <Stack.Screen name="SurveyResults" component={SurveyResultsScreen} options={{ title: 'Survey results' }} />
       <Stack.Screen name="ManageItems" component={InventoryScreen} options={{ title: 'Edit items' }} />
-      <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Budget' }} />
+      <Stack.Screen name="Budget" component={BudgetScreen} options={{ title: 'Receipts & budget' }} />
+      <Stack.Screen name="Receipt" component={ReceiptScreen} options={{ title: 'Receipt' }} />
+      <Stack.Screen name="People" component={PeopleScreen} options={{ title: 'People & logins' }} />
       <Stack.Screen name="Reports" component={ReportBuilderScreen} options={{ title: 'Reports' }} />
       <Stack.Screen name="EventsList" component={EventsListScreen} options={{ title: 'Past events' }} />
       <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Event details' }} />
@@ -153,11 +168,48 @@ function Loading() {
   );
 }
 
+// Tapping a notification opens the screen it's about (team chat, the Give
+// screen, and so on) - including when the tap is what started the app.
+function useNotificationTaps(isStaff, loading) {
+  const pending = useRef(null);
+  const isStaffRef = useRef(isStaff);
+  isStaffRef.current = isStaff;
+
+  function open(response) {
+    const screen = screenForNotification(response?.notification?.request?.content?.data, isStaffRef.current);
+    if (!screen) return;
+    if (navigationRef.isReady()) navigationRef.navigate(screen);
+    else pending.current = screen;
+  }
+
+  useEffect(() => {
+    if (loading) return undefined;
+    Notifications.getLastNotificationResponseAsync().then(open).catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, [loading]);
+
+  return function onReady() {
+    if (pending.current) {
+      navigationRef.navigate(pending.current);
+      pending.current = null;
+    }
+  };
+}
+
 function RootNavigator() {
   const { user, loading } = useAuth();
+  const isStaff = !!user && user.role !== 'neighbor';
+  const onReady = useNotificationTaps(isStaff, loading);
   if (loading) return <Loading />;
-  const isStaff = user && user.role !== 'neighbor';
-  return <NavigationContainer>{isStaff ? <StaffStack /> : <PublicStack />}</NavigationContainer>;
+  return (
+    <>
+      <NavigationContainer ref={navigationRef} onReady={onReady}>
+        {isStaff ? <StaffStack /> : <PublicStack />}
+      </NavigationContainer>
+      <UpdateBanner />
+    </>
+  );
 }
 
 export default function App() {

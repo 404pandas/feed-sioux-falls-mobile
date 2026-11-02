@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-const API_URL = Constants.expoConfig.extra.apiUrl;
+export const API_URL = Constants.expoConfig.extra.apiUrl;
 const TOKEN_KEY = 'fsf_auth_token';
 
 async function getToken() {
@@ -16,21 +16,57 @@ export async function clearToken() {
   await AsyncStorage.removeItem(TOKEN_KEY);
 }
 
+// For things fetched outside request() - receipt photos shown in an Image,
+// or downloaded to share.
+export async function authHeaders() {
+  const token = await getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Set by AuthContext: called when the server says a saved login has
+// expired, so the person is asked to log in again instead of every staff
+// screen (and the offline queue) quietly failing.
+let onUnauthorized = null;
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = handler;
+}
+
+// Long enough for a slow phone signal, short enough that Save, Log in, or
+// Submit never spins forever at outreach.
+const TIMEOUT_MS = 20000;
+
 // Central request function. Every API call in the app goes through this,
 // so auth headers and error handling are handled in exactly one place.
 async function request(path, { method = 'GET', body, requiresAuth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
 
+  let token = null;
   if (requiresAuth) {
-    const token = await getToken();
+    token = await getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    // No status on purpose: the offline queue reads "no status" as "try
+    // again later".
+    throw new Error(
+      err.name === 'AbortError'
+        ? 'The server took too long to answer. Check your signal and try again.'
+        : 'Could not reach the server. Check your signal and try again.'
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 
   const data = await response.json().catch(() => ({}));
 
@@ -39,6 +75,7 @@ async function request(path, { method = 'GET', body, requiresAuth = true } = {})
     // Lets the offline queue tell "the server will never accept this" (e.g.
     // the item was deleted) apart from "try again later".
     error.status = response.status;
+    if (response.status === 401 && token && onUnauthorized) onUnauthorized();
     throw error;
   }
 
@@ -75,6 +112,16 @@ export const api = {
   getCurrentBudget: () => request('/api/budget/current'),
   updateBudget: (totalBudget) => request('/api/budget/current', { method: 'PATCH', body: { totalBudget } }),
   logPurchase: (payload) => request('/api/budget/purchases', { method: 'POST', body: payload }),
+  getBudgetMonth: (month) => request(`/api/budget/month/${month}`),
+  setBudgetMonth: (month, totalBudget) => request(`/api/budget/month/${month}`, { method: 'PATCH', body: { totalBudget } }),
+
+  // Receipts - photo: { base64, contentType }; lines: [{ itemId, quantity }]
+  createReceipt: (payload) => request('/api/receipts', { method: 'POST', body: payload }),
+  updateReceipt: (id, payload) => request(`/api/receipts/${id}`, { method: 'PATCH', body: payload }),
+  deleteReceipt: (id) => request(`/api/receipts/${id}`, { method: 'DELETE' }),
+  getReceiptStorage: () => request('/api/receipts/storage'),
+  receiptPhotoUrl: (id, download) => `${API_URL}/api/receipts/${id}/photo${download ? '?download=1' : ''}`,
+  receiptsCsvUrl: (month) => `${API_URL}/api/receipts/export.csv?month=${month}`,
 
   // Reports
   getWeeklyReport: (date) => request(`/api/reports/weekly${date ? `?date=${date}` : ''}`),
@@ -113,4 +160,28 @@ export const api = {
   // Admin - contact form inbox
   getContactMessages: () => request('/api/contact'),
   resolveContactMessage: (id) => request(`/api/contact/${id}/resolve`, { method: 'PATCH' }),
+
+  // Push notifications. Registering works logged in or not; when logged
+  // in, the phone is tied to that person so staff notices reach them.
+  registerPushDevice: (payload) => request('/api/notifications/devices', { method: 'POST', body: payload }),
+  forgetPushDevice: (token) => request('/api/notifications/devices', { method: 'DELETE', body: { token }, requiresAuth: false }),
+  // Admin - send a notice. audience: 'staff' | 'everyone'; kind (everyone
+  // only): 'outreach' | 'pantry' | 'needs'.
+  getNotificationAudience: (audience, kind) => {
+    const qs = new URLSearchParams(kind ? { audience, kind } : { audience }).toString();
+    return request(`/api/notifications/audience?${qs}`);
+  },
+  sendNotification: (payload) => request('/api/notifications/send', { method: 'POST', body: payload }),
+  getSentNotifications: () => request('/api/notifications/sent'),
+
+  // Admin - people & logins (the backend's admin Data routes for users).
+  getPeople: () => request('/api/admin/users?limit=500'),
+  addPerson: (person) => request('/api/admin/users', { method: 'POST', body: person }),
+  updatePerson: (id, changes) => request(`/api/admin/users/${id}`, { method: 'PATCH', body: changes }),
+  deletePerson: (id) => request(`/api/admin/users/${id}`, { method: 'DELETE' }),
+
+  // Staff - team chat
+  getTeamChat: (before) => request(`/api/team-chat${before ? `?before=${encodeURIComponent(before)}` : ''}`),
+  postTeamChat: (body) => request('/api/team-chat', { method: 'POST', body: { body } }),
+  deleteTeamChat: (id) => request(`/api/team-chat/${id}`, { method: 'DELETE' }),
 };

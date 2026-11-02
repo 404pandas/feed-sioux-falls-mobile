@@ -1,29 +1,41 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Protects a route: requires a valid JWT in the Authorization header.
-// Usage: router.get('/inventory', requireAuth, handler)
-async function requireAuth(req, res, next) {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-  if (!token) {
-    return res.status(401).json({ error: 'Not logged in.' });
-  }
-
+// The active user a login token belongs to, or null (missing, expired, or
+// tampered token; deactivated or deleted person; or a login made before
+// their PIN was last changed). Logins from before sessionVersion existed
+// have no `sv` and count as version 0.
+async function userFromToken(token) {
+  if (!token) return null;
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.userId);
-
-    if (!user || !user.active) {
-      return res.status(401).json({ error: 'Account not found or deactivated.' });
-    }
-
-    req.user = user; // available to every route handler after this
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Session expired or invalid. Please log in again.' });
+    if (!user || !user.active) return null;
+    if ((payload.sv || 0) !== (user.sessionVersion || 0)) return null;
+    return user;
+  } catch {
+    return null;
   }
+}
+
+function tokenFrom(req) {
+  const authHeader = req.headers.authorization || '';
+  return authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+}
+
+// Protects a route: requires a valid JWT in the Authorization header.
+// Usage: router.get('/inventory', requireAuth, handler)
+async function requireAuth(req, res, next) {
+  const token = tokenFrom(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Not logged in.' });
+  }
+  const user = await userFromToken(token);
+  if (!user) {
+    return res.status(401).json({ error: 'Your login has ended (expired, PIN changed, or access removed). Please log in again.' });
+  }
+  req.user = user; // available to every route handler after this
+  next();
 }
 
 // Restricts a route to admins only. Use AFTER requireAuth.
@@ -46,4 +58,4 @@ function requireStaff(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, requireAdmin, requireStaff };
+module.exports = { requireAuth, requireAdmin, requireStaff, userFromToken, tokenFrom };

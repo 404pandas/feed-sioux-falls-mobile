@@ -10,6 +10,7 @@ const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+process.env.PUSH_DRY_RUN = '1'; // never send real pushes from tests
 const URI = process.env.MONGODB_URI_TEST;
 if (!URI || /prod|atlas|mongodb\+srv/i.test(URI)) {
   console.error('Set MONGODB_URI_TEST to a local throwaway database (it gets wiped).');
@@ -230,4 +231,185 @@ test('admin data: survey responses one by one, read-only; search; change log', a
   assert.ok(log.data.total >= 4);
   assert.equal(log.data.rows[0].user.name, 'Ada Admin');
   assert.equal((await call('DELETE', `/api/admin/auditLog/${log.data.rows[0]._id}`, { token: tokens.admin })).status, 405);
+});
+
+test('push devices: anyone can turn notifications on; logins link the phone', async () => {
+  const guest = await call('POST', '/api/notifications/devices', {
+    body: { token: 'ExponentPushToken[guest]', platform: 'android', prefs: { outreach: true, pantry: false, needs: true }, hideContent: true },
+  });
+  assert.equal(guest.status, 200);
+  assert.equal(guest.data.linkedToLogin, false);
+  assert.equal(guest.data.prefs.pantry, false);
+  assert.equal(guest.data.hideContent, true);
+  assert.equal((await call('POST', '/api/notifications/devices', { body: { token: 'not-a-token' } })).status, 400);
+
+  const vol = await call('POST', '/api/notifications/devices', { token: tokens.volunteer, body: { token: 'ExponentPushToken[vol]', prefs: { staff: true, chat: true } } });
+  assert.equal(vol.data.linkedToLogin, true);
+  await call('POST', '/api/notifications/devices', { token: tokens.admin, body: { token: 'ExponentPushToken[admin]' } });
+  // A neighbor's phone is linked too, but never counts as staff.
+  await call('POST', '/api/notifications/devices', { token: tokens.neighbor, body: { token: 'ExponentPushToken[neighbor]' } });
+});
+
+test('admins send notices; volunteers cannot; every send is logged', async () => {
+  // The admin's own phone is left out of the count.
+  const staff = await call('GET', '/api/notifications/audience?audience=staff', { token: tokens.admin });
+  assert.deepEqual(staff.data, { count: 1 });
+  const everyonePantry = await call('GET', '/api/notifications/audience?audience=everyone&kind=pantry', { token: tokens.admin });
+  assert.equal(everyonePantry.data.count, 2); // volunteer + neighbor; the guest turned pantry off
+  assert.equal((await call('GET', '/api/notifications/audience?audience=everyone&kind=chat', { token: tokens.admin })).status, 400);
+
+  assert.equal((await call('POST', '/api/notifications/send', { token: tokens.volunteer, body: { title: 'Hi', body: 'x', audience: 'staff' } })).status, 403);
+  assert.equal((await call('POST', '/api/notifications/send', { token: tokens.admin, body: { title: '', body: 'x', audience: 'staff' } })).status, 400);
+
+  const sent = await call('POST', '/api/notifications/send', {
+    token: tokens.admin,
+    body: { title: 'Meet at 9:30', body: 'Bring gloves, it is cold.', audience: 'staff' },
+  });
+  assert.equal(sent.status, 201);
+  assert.equal(sent.data.recipients, 1);
+
+  const history = await call('GET', '/api/notifications/sent', { token: tokens.admin });
+  assert.equal(history.data[0].sentBy.name, 'Ada Admin');
+  assert.equal(history.data[0].kind, 'staff');
+  const log = await call('GET', '/api/admin/auditLog?collectionKey=sentNotifications', { token: tokens.admin });
+  assert.equal(log.data.total, 1);
+
+  // Every switch off: the phone is forgotten.
+  assert.equal((await call('DELETE', '/api/notifications/devices', { body: { token: 'ExponentPushToken[guest]' } })).status, 200);
+  const after = await call('GET', '/api/notifications/audience?audience=everyone&kind=outreach', { token: tokens.admin });
+  assert.equal(after.data.count, 2);
+});
+
+test('team chat: staff only; delete your own, admins delete any', async () => {
+  assert.equal((await call('GET', '/api/team-chat', { token: tokens.neighbor })).status, 403);
+  assert.equal((await call('POST', '/api/team-chat', { token: tokens.volunteer, body: { body: '   ' } })).status, 400);
+
+  const a = await call('POST', '/api/team-chat', { token: tokens.volunteer, body: { body: 'Out of size L coats' } });
+  assert.equal(a.status, 201);
+  assert.equal(a.data.author.name, 'Val Volunteer');
+  const b = await call('POST', '/api/team-chat', { token: tokens.admin, body: { body: 'Buying some today' } });
+
+  const list = await call('GET', '/api/team-chat', { token: tokens.volunteer });
+  assert.deepEqual(list.data.map((m) => m.body), ['Out of size L coats', 'Buying some today']);
+
+  assert.equal((await call('DELETE', `/api/team-chat/${b.data._id}`, { token: tokens.volunteer })).status, 403);
+  assert.equal((await call('DELETE', `/api/team-chat/${a.data._id}`, { token: tokens.admin })).status, 200);
+  assert.equal((await call('GET', '/api/team-chat', { token: tokens.volunteer })).data.length, 1);
+});
+
+// A tiny valid JPEG header is enough - the server stores bytes, it doesn't decode them.
+const PHOTO = { base64: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9]).toString('base64'), contentType: 'image/jpeg' };
+
+test('receipts: staff add with photo and restock; admins edit and delete', async () => {
+  const items = await call('GET', '/api/items', { token: tokens.admin });
+  const socks = items.data.find((i) => i._id === ids.socks);
+  const before = socks.currentStock;
+
+  assert.equal((await call('POST', '/api/receipts', { token: tokens.neighbor, body: {} })).status, 403);
+  assert.equal((await call('POST', '/api/receipts', { token: tokens.volunteer, body: { store: 'Walmart', date: '2026-10-31', total: 'abc' } })).status, 400);
+  assert.equal((await call('POST', '/api/receipts', { token: tokens.volunteer, body: { store: 'Walmart', date: '2099-01-01', total: 5 } })).status, 400);
+
+  const created = await call('POST', '/api/receipts', {
+    token: tokens.volunteer,
+    body: { store: 'Walmart', date: '2026-10-31', total: 42.5, category: 'winter', photo: PHOTO, lines: [{ itemId: ids.socks, quantity: 12 }] },
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.data.month, '2026-10');
+  assert.equal(created.data.hasPhoto, true);
+  assert.equal(created.data.uploadedBy.name, 'Val Volunteer');
+  ids.receipt = created.data._id;
+
+  const after = (await call('GET', '/api/items', { token: tokens.admin })).data.find((i) => i._id === ids.socks);
+  assert.equal(after.currentStock, before + 12);
+
+  const photo = await fetch(`${base}/api/receipts/${ids.receipt}/photo`, { headers: { Authorization: `Bearer ${tokens.volunteer}` } });
+  assert.equal(photo.headers.get('content-type'), 'image/jpeg');
+  assert.equal(Buffer.from(await photo.arrayBuffer()).toString('base64'), PHOTO.base64);
+
+  // A manual receipt with no photo and no items (gas for the outreach van).
+  const gas = await call('POST', '/api/receipts', { token: tokens.admin, body: { store: 'Casey\'s', date: '2026-10-30', total: 30, category: 'operations' } });
+  assert.equal(gas.status, 201);
+  assert.equal(gas.data.hasPhoto, false);
+
+  // Volunteers can't edit; admins can, and lines stay as they were.
+  assert.equal((await call('PATCH', `/api/receipts/${ids.receipt}`, { token: tokens.volunteer, body: { total: 1 } })).status, 403);
+  const edited = await call('PATCH', `/api/receipts/${ids.receipt}`, { token: tokens.admin, body: { total: 40, date: '2026-11-01', removePhoto: true } });
+  assert.equal(edited.data.total, 40);
+  assert.equal(edited.data.month, '2026-11');
+  assert.equal(edited.data.hasPhoto, false);
+  assert.equal(edited.data.lines[0].quantity, 12);
+  assert.equal((await call('GET', `/api/receipts/${ids.receipt}/photo`, { token: tokens.admin })).status, 404);
+
+  const log = await call('GET', '/api/admin/auditLog?collectionKey=receipts', { token: tokens.admin });
+  assert.equal(log.data.total, 3);
+
+  assert.equal((await call('DELETE', `/api/receipts/${gas.data._id}`, { token: tokens.volunteer })).status, 403);
+  assert.equal((await call('DELETE', `/api/receipts/${gas.data._id}`, { token: tokens.admin })).status, 200);
+});
+
+test('budget: any month, admins set the total, receipts count as spending', async () => {
+  const nov = await call('GET', '/api/budget/month/2026-11', { token: tokens.volunteer });
+  assert.equal(nov.status, 200);
+  assert.equal(nov.data.receipts.length, 1);
+  assert.ok(nov.data.amountSpent >= 40);
+  assert.ok(nov.data.spentByCategory.winter >= 40);
+
+  const old = await call('GET', '/api/budget/month/2020-01', { token: tokens.admin });
+  assert.equal(old.data.isDefault, true);
+  assert.equal(old.data.budget.totalBudget, 2800);
+
+  assert.equal((await call('PATCH', '/api/budget/month/2026-11', { token: tokens.volunteer, body: { totalBudget: 3500 } })).status, 403);
+  assert.equal((await call('PATCH', '/api/budget/month/2026-11', { token: tokens.admin, body: { totalBudget: -1 } })).status, 400);
+  const set = await call('PATCH', '/api/budget/month/2026-11', { token: tokens.admin, body: { totalBudget: 3500 } });
+  assert.equal(set.data.totalBudget, 3500);
+  const again = await call('GET', '/api/budget/month/2026-11', { token: tokens.admin });
+  assert.equal(again.data.isDefault, false);
+  assert.equal(again.data.remaining, Math.round((3500 - again.data.amountSpent) * 100) / 100);
+
+  const report = await call('GET', '/api/reports/custom?start=2026-11-01T00:00:00Z&end=2026-11-30T23:59:59Z', { token: tokens.admin });
+  assert.ok(report.data.summary.totalSpent >= 40);
+  assert.ok(report.data.spendByCategory.some((c) => c.category === 'winter'));
+});
+
+test('receipts: photo download is named for QuickBooks; month exports as CSV', async () => {
+  const r = await call('POST', '/api/receipts', { token: tokens.admin, body: { store: 'Dollar General', date: '2026-11-02', total: 12.5, note: 'Soap, "travel" size', photo: PHOTO } });
+  const dl = await fetch(`${base}/api/receipts/${r.data._id}/photo?download=1`, { headers: { Authorization: `Bearer ${tokens.admin}` } });
+  assert.match(dl.headers.get('content-disposition'), /filename="2026-11-02 Dollar General 12\.50\.jpg"/);
+
+  assert.equal((await call('GET', '/api/receipts/export.csv?month=2026-11', { token: tokens.volunteer })).status, 403);
+  const csv = await fetch(`${base}/api/receipts/export.csv?month=2026-11`, { headers: { Authorization: `Bearer ${tokens.admin}` } });
+  const text = await csv.text();
+  const lines = text.trim().split('\r\n');
+  assert.equal(lines[0], 'Date,Payee,Amount,Category,Memo,Receipt photo,Added by');
+  assert.ok(lines.some((l) => l.startsWith('11/02/2026,Dollar General,12.50,Other supplies,"Soap, ""travel"" size",2026-11-02 Dollar General 12.50.jpg,Ada Admin')));
+});
+
+test('people: admins add, edit, reset PINs, and remove access; a new PIN logs out old logins', async () => {
+  assert.equal((await call('POST', '/api/admin/users', { token: tokens.volunteer, body: { name: 'X', role: 'admin', pin: '1234' } })).status, 403);
+
+  const added = await call('POST', '/api/admin/users', { token: tokens.admin, body: { name: 'Bo Board', role: 'admin', pin: '4321', active: true } });
+  assert.equal(added.status, 201);
+  assert.equal(added.data.pinHash, undefined);
+  const id = added.data._id;
+  const login = await call('POST', '/api/auth/login', { body: { userId: id, pin: '4321' } });
+  const oldToken = login.data.token;
+  assert.equal((await call('GET', '/api/auth/me', { token: oldToken })).status, 200);
+
+  // New PIN: the old login stops working everywhere; the new PIN works.
+  assert.equal((await call('PATCH', `/api/admin/users/${id}`, { token: tokens.admin, body: { pin: '5555' } })).status, 200);
+  assert.equal((await call('GET', '/api/auth/me', { token: oldToken })).status, 401);
+  const relogin = await call('POST', '/api/auth/login', { body: { userId: id, pin: '5555' } });
+  assert.equal((await call('GET', '/api/auth/me', { token: relogin.data.token })).status, 200);
+
+  // Making them a volunteer takes admin access away on the next request.
+  await call('PATCH', `/api/admin/users/${id}`, { token: tokens.admin, body: { role: 'volunteer' } });
+  assert.equal((await call('GET', '/api/admin/users', { token: relogin.data.token })).status, 403);
+
+  // Turning off "Can log in" ends their access and hides them from the login list.
+  await call('PATCH', `/api/admin/users/${id}`, { token: tokens.admin, body: { active: false } });
+  assert.equal((await call('GET', '/api/auth/me', { token: relogin.data.token })).status, 401);
+  assert.ok(!(await call('GET', '/api/auth/names')).data.some((u) => u._id === id));
+
+  assert.equal((await call('DELETE', `/api/admin/users/${id}`, { token: tokens.admin })).status, 200);
+  assert.equal((await call('PATCH', `/api/admin/users/${ids.admin}`, { token: tokens.admin, body: { active: false } })).status, 400);
 });

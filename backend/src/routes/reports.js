@@ -2,7 +2,7 @@ const express = require('express');
 const DistributionEvent = require('../models/DistributionEvent');
 const PersonServedTally = require('../models/PersonServedTally');
 const InventoryTransaction = require('../models/InventoryTransaction');
-const PurchaseLog = require('../models/PurchaseLog');
+const { spendingBetween } = require('../utils/spending');
 const MonthlyBudget = require('../models/MonthlyBudget');
 const Donation = require('../models/Donation');
 const Item = require('../models/Item');
@@ -69,8 +69,8 @@ async function buildReport(startDate, endDate) {
   const tallies = await PersonServedTally.find({ distributionEvent: { $in: eventIds } });
   const peopleServed = tallies.reduce((sum, t) => sum + t.countIncrement, 0);
 
-  const purchases = await PurchaseLog.find({ date: { $gte: startDate, $lte: endDate } }).populate('item', 'name');
-  const totalSpent = purchases.reduce((sum, p) => sum + p.cost, 0);
+  const spending = await spendingBetween(startDate, endDate);
+  const totalSpent = spending.reduce((sum, s) => sum + s.cost, 0);
 
   const distributedTx = await InventoryTransaction.aggregate([
     { $match: { type: 'distributed', date: { $gte: startDate, $lte: endDate } } },
@@ -158,13 +158,13 @@ router.get('/custom', asyncHandler(async (req, res) => {
 
   const eventsByPeriod = bucketSum(events, 'date', groupBy, () => 1);
 
-  const purchases = await PurchaseLog.find({ date: { $gte: startDate, $lte: endDate } }).populate('item', 'name category').sort({ date: 1 });
-  const totalSpent = purchases.reduce((sum, p) => sum + p.cost, 0);
-  const spendByPeriod = bucketSum(purchases, 'date', groupBy, (p) => p.cost);
+  // Per-item purchases and receipts together (utils/spending).
+  const spending = await spendingBetween(startDate, endDate);
+  const totalSpent = spending.reduce((sum, s) => sum + s.cost, 0);
+  const spendByPeriod = bucketSum(spending, 'date', groupBy, (s) => s.cost);
   const spendByCategory = Array.from(
-    purchases.reduce((map, p) => {
-      const cat = p.item?.category || 'other';
-      map.set(cat, (map.get(cat) || 0) + p.cost);
+    spending.reduce((map, s) => {
+      map.set(s.category, (map.get(s.category) || 0) + s.cost);
       return map;
     }, new Map())
   ).map(([category, amount]) => ({ category, amount }));

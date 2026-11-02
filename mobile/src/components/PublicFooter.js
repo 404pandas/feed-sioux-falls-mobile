@@ -53,6 +53,7 @@ export default function PublicFooter({ navigation }) {
 
       <View style={{ marginTop: spacing.xl, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: '#4A433E' }}>
         <Text style={{ color: '#CFC8BF', fontSize: 16 }}>Food is a human right.</Text>
+        <FooterLink title="Notifications" onPress={() => navigation.navigate('Notifications')} />
         {!user && <FooterLink title="Staff & volunteer log in" onPress={() => navigation.navigate('Login')} />}
       </View>
     </View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, FlatList, Linking, Alert, RefreshControl, StyleSheet } from 'react-native';
+import { View, FlatList, Alert, RefreshControl, StyleSheet } from 'react-native';
 import Text from '../../components/Text';
 import TextInput from '../../components/TextInput';
 import Screen from '../../components/Screen';
@@ -7,6 +7,7 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { colors, spacing, typography, radii, inputStyle } from '../../theme/tokens';
 import { api } from '../../api/client';
+import StoreLinksEditor, { ReorderLinks, sourcesForForm, sourcesForSave } from '../../components/StoreLinks';
 
 const CATEGORIES = ['hygiene', 'winter', 'other'];
 const FILTER_CATEGORIES = ['all', ...CATEGORIES];
@@ -18,7 +19,7 @@ const BLANK_FORM = {
   currentStock: '',
   lowThreshold: '',
   unitType: '',
-  amazonLink: '',
+  sources: [],
 };
 
 export default function InventoryScreen() {
@@ -72,7 +73,7 @@ export default function InventoryScreen() {
       currentStock: String(item.currentStock),
       lowThreshold: String(item.lowThreshold),
       unitType: item.unitType,
-      amazonLink: item.amazonLink || '',
+      sources: sourcesForForm(item),
     });
     setFormVisible(true);
   }
@@ -95,22 +96,37 @@ export default function InventoryScreen() {
       return;
     }
 
+    let sources;
+    try {
+      sources = sourcesForSave(form.sources);
+    } catch (err) {
+      Alert.alert('Check the store links', err.message);
+      return;
+    }
+
     const payload = {
       name: form.name.trim(),
       category: form.category,
       unitType: form.unitType.trim(),
       unitCost: Number(form.unitCost),
-      currentStock: form.currentStock === '' ? 0 : Number(form.currentStock),
       lowThreshold: form.lowThreshold === '' ? 0 : Number(form.lowThreshold),
-      amazonLink: form.amazonLink.trim() || null,
+      // The server keeps the old single Amazon link in step with these.
+      sources,
     };
+    // Stock is only set when adding an item. Editing used to send back the
+    // number from when the form opened, which erased any +/- taps that
+    // synced in the meantime and skipped the inventory history.
+    if (!editingItem) payload.currentStock = form.currentStock === '' ? 0 : Number(form.currentStock);
 
     setSaving(true);
     try {
+      // Show the saved item right away, then refresh the whole list.
       if (editingItem) {
-        await api.updateItem(editingItem._id, payload);
+        const saved = await api.updateItem(editingItem._id, payload);
+        setItems((prev) => prev.map((i) => (i._id === saved._id ? saved : i)));
       } else {
-        await api.createItem(payload);
+        const saved = await api.createItem(payload);
+        setItems((prev) => [...prev, saved]);
       }
       closeForm();
       await load();
@@ -141,21 +157,6 @@ export default function InventoryScreen() {
     }
   }
 
-  async function openBuyNow(item) {
-    if (!item.amazonLink) {
-      Alert.alert('No link set', `Add an Amazon link for "${item.name}" to enable Buy Now.`);
-      return;
-    }
-    // Opens Amazon's app if installed, otherwise the browser. A person still
-    // has to tap "Buy" themselves on Amazon - nothing is auto-purchased.
-    const canOpen = await Linking.canOpenURL(item.amazonLink);
-    if (canOpen) {
-      Linking.openURL(item.amazonLink);
-    } else {
-      Alert.alert('Could not open link', 'The Amazon link for this item looks invalid.');
-    }
-  }
-
   // The add/edit form gets its own scrolling screen. It used to sit inside
   // the non-scrolling list layout, so on most phones the lower fields and
   // the Save button were cut off with no way to reach them.
@@ -171,14 +172,17 @@ export default function InventoryScreen() {
           <TextInput value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} style={styles.input} placeholder="Bar soap (individually wrapped)" />
 
           <Text style={styles.label}>Category</Text>
-          <View style={{ flexDirection: 'row', marginBottom: spacing.sm }}>
+          {/* Sized to their words and wrapping as a group - three equal
+              columns broke "Hygiene" and "Winter" mid-word. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm }}>
             {CATEGORIES.map((c) => (
               <Button
                 key={c}
                 title={c[0].toUpperCase() + c.slice(1)}
+                small
                 variant={form.category === c ? 'primary' : 'outline'}
                 onPress={() => setForm((f) => ({ ...f, category: c }))}
-                style={{ flex: 1, marginRight: c !== CATEGORIES[CATEGORIES.length - 1] ? spacing.xs : 0, minHeight: 40 }}
+                style={{ marginRight: spacing.xs, marginBottom: spacing.xs }}
               />
             ))}
           </View>
@@ -189,14 +193,23 @@ export default function InventoryScreen() {
           <Text style={styles.label}>Unit cost ($)</Text>
           <TextInput value={form.unitCost} onChangeText={(v) => setForm((f) => ({ ...f, unitCost: v }))} style={styles.input} keyboardType="decimal-pad" placeholder="0.11" />
 
-          <Text style={styles.label}>Current stock</Text>
-          <TextInput value={form.currentStock} onChangeText={(v) => setForm((f) => ({ ...f, currentStock: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
+          <Text style={styles.label}>{editingItem ? 'In stock' : 'Starting stock'}</Text>
+          {editingItem ? (
+            <Text style={typography.body}>
+              {editingItem.currentStock} {editingItem.unitType}
+              {editingItem.currentStock === 1 ? '' : 's'}. Change it with − and + on the Inventory tab, so it's kept in
+              the history.
+            </Text>
+          ) : (
+            <TextInput value={form.currentStock} onChangeText={(v) => setForm((f) => ({ ...f, currentStock: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
+          )}
 
           <Text style={styles.label}>Low stock threshold</Text>
           <TextInput value={form.lowThreshold} onChangeText={(v) => setForm((f) => ({ ...f, lowThreshold: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
 
-          <Text style={styles.label}>Amazon link (optional)</Text>
-          <TextInput value={form.amazonLink} onChangeText={(v) => setForm((f) => ({ ...f, amazonLink: v }))} style={styles.input} placeholder="https://www.amazon.com/..." autoCapitalize="none" autoCorrect={false} keyboardType="url" />
+          <Text style={[styles.label, { marginTop: spacing.md }]}>Where to buy (optional)</Text>
+          <Text style={typography.bodyMuted}>Add Amazon, Temu, or any store. With a price and pack size, the cheapest per unit is marked.</Text>
+          <StoreLinksEditor value={form.sources} onChange={(sources) => setForm((f) => ({ ...f, sources }))} />
 
           <View style={{ flexDirection: 'row', marginTop: spacing.md }}>
             <Button title="Cancel" variant="outline" onPress={closeForm} style={{ flex: 1, marginRight: spacing.sm }} />
@@ -268,9 +281,7 @@ export default function InventoryScreen() {
               </Text>
               <Text style={typography.bodyMuted}>${item.unitCost.toFixed(2)} / {item.unitType}</Text>
 
-              {isLow && item.amazonLink && (
-                <Button title="Buy Now on Amazon" variant="accent" onPress={() => openBuyNow(item)} style={{ marginTop: spacing.sm }} />
-              )}
+              <ReorderLinks item={item} style={{ marginTop: spacing.sm }} />
 
               <View style={{ flexDirection: 'row', marginTop: spacing.sm }}>
                 <Button title="Edit" variant="outline" onPress={() => openEditForm(item)} style={{ flex: 1, marginRight: spacing.sm, minHeight: 40 }} />
