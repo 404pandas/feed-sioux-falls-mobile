@@ -4,6 +4,7 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
@@ -12,7 +13,7 @@ import { useFonts, Fredoka_500Medium, Fredoka_600SemiBold } from '@expo-google-f
 import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from '@expo-google-fonts/atkinson-hyperlegible';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { brand, colors } from './src/theme/tokens';
-import AppHeader from './src/components/AppHeader';
+import AppHeader, { HEADER_MAX_SCALE } from './src/components/AppHeader';
 import TabBar from './src/components/TabBar';
 import UpdateBanner from './src/components/UpdateBanner';
 import { screenForNotification } from './src/notifications';
@@ -60,7 +61,7 @@ const screenOptions = {
 const surveyOptions = { title: 'Survey', headerTone: 'teal', headerBackLabel: 'Close' };
 
 function LoginButton({ navigation }) {
-  return <Button title="Log in" variant="outline" small onPress={() => navigation.navigate('Login')} />;
+  return <Button title="Log in" variant="outline" small onPress={() => navigation.navigate('Login')} maxFontSizeMultiplier={HEADER_MAX_SCALE} />;
 }
 
 function LogoutButton() {
@@ -71,7 +72,16 @@ function LogoutButton() {
       { text: 'Log out', style: 'destructive', onPress: logout },
     ]);
   }
-  return <Button title={user?.role === 'neighbor' ? `Log out ${user.name.split(' ')[0]}` : 'Log out'} icon="logout" variant="outline" small onPress={confirmLogout} />;
+  return (
+    <Button
+      title={user?.role === 'neighbor' ? `Log out ${user.name.split(' ')[0]}` : 'Log out'}
+      icon="logout"
+      variant="outline"
+      small
+      onPress={confirmLogout}
+      maxFontSizeMultiplier={HEADER_MAX_SCALE}
+    />
+  );
 }
 
 const openSurvey = (navigation) => navigation.navigate('Survey');
@@ -87,7 +97,7 @@ function PublicTabs() {
         ...screenOptions,
         headerBrand: true,
         headerRight: () => (user ? <LogoutButton /> : <LoginButton navigation={navigation} />),
-        sceneContainerStyle: { backgroundColor: colors.background },
+        sceneStyle: { backgroundColor: colors.background },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home', tabIcon: 'home' }} />
@@ -121,7 +131,7 @@ function StaffTabs() {
         ...screenOptions,
         headerBrand: true,
         headerRight: () => <LogoutButton />,
-        sceneContainerStyle: { backgroundColor: colors.background },
+        sceneStyle: { backgroundColor: colors.background },
       }}
     >
       <Tab.Screen name="StaffHome" component={StaffHomeScreen} options={{ title: 'Home', tabIcon: 'home' }} />
@@ -210,7 +220,9 @@ function RootNavigator() {
   if (loading) return <Loading />;
   return (
     <>
-      <NavigationContainer ref={navigationRef} onReady={onReady}>
+      {/* navigationInChildEnabled: notification taps open screens inside the
+          tabs (e.g. StaffHome) by name, as React Navigation 6 did. */}
+      <NavigationContainer ref={navigationRef} onReady={onReady} navigationInChildEnabled>
         {isStaff ? <StaffStack /> : <PublicStack />}
       </NavigationContainer>
       <UpdateBanner />
@@ -225,13 +237,16 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StripeProvider publishableKey={stripeKey} merchantIdentifier="merchant.com.feedsiouxfalls.app">
-        <AuthProvider>
-          {/* Dark icons: headers are white now, like the website. */}
-          <StatusBar style="dark" />
-          {fontsLoaded ? <RootNavigator /> : <Loading />}
-        </AuthProvider>
-      </StripeProvider>
+      {/* Keeps fields and buttons above the keyboard (see components/Screen). */}
+      <KeyboardProvider>
+        <StripeProvider publishableKey={stripeKey} merchantIdentifier="merchant.com.feedsiouxfalls.app">
+          <AuthProvider>
+            {/* Dark icons: headers are white now, like the website. */}
+            <StatusBar style="dark" />
+            {fontsLoaded ? <RootNavigator /> : <Loading />}
+          </AuthProvider>
+        </StripeProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

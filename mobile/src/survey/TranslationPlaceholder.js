@@ -69,9 +69,9 @@ export default function TranslationPlaceholder({ language, onChooseLanguage }) {
         ) : (
           <>
             <Text style={styles.label}>{copy.helpName}</Text>
-            <TextInput value={name} onChangeText={setName} style={styles.input} autoComplete="name" />
+            <TextInput accessibilityLabel={copy.helpName} value={name} onChangeText={setName} style={styles.input} autoComplete="name" />
             <Text style={styles.label}>{copy.helpContact}</Text>
-            <TextInput value={reach} onChangeText={setReach} style={styles.input} autoCapitalize="none" autoCorrect={false} />
+            <TextInput accessibilityLabel={copy.helpContact} value={reach} onChangeText={setReach} style={styles.input} autoCapitalize="none" autoCorrect={false} />
             {!!error && <Text style={[typography.body, { color: colors.danger, marginTop: spacing.sm }]}>{error}</Text>}
             <Button title={copy.helpSend} onPress={send} loading={sending} style={{ marginTop: spacing.md }} />
           </>

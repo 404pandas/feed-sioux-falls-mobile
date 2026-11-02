@@ -16,6 +16,10 @@ import { brand } from '../theme/tokens';
 //   headerTone     - 'teal' for the survey (like the website's survey bar)
 //   headerRight    - () => element
 //   headerBackLabel - text for the back button (default "Back")
+// The header is one row (back, title, a button), so its text grows with the
+// phone's text size only up to this much; the screen below grows fully.
+export const HEADER_MAX_SCALE = 1.3;
+
 export default function AppHeader({ navigation, options, back }) {
   const insets = useSafeAreaInsets();
   const teal = options.headerTone === 'teal';
@@ -41,15 +45,18 @@ export default function AppHeader({ navigation, options, back }) {
             style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, marginRight: 8 }}
           >
             <Icon name="chevronLeft" size={24} color={fg} />
-            <Text style={{ fontWeight: '700', color: fg, fontSize: 17 }}>{options.headerBackLabel || 'Back'}</Text>
+            <Text style={{ fontWeight: '700', color: fg, fontSize: 17 }} maxFontSizeMultiplier={HEADER_MAX_SCALE}>
+              {options.headerBackLabel || 'Back'}
+            </Text>
           </Pressable>
         )}
         <View style={{ flex: 1, alignItems: canGoBack ? 'center' : 'flex-start' }}>
           {options.headerBrand && !canGoBack ? (
-            <BrandMark />
+            <BrandMark maxFontSizeMultiplier={HEADER_MAX_SCALE} />
           ) : (
             <Text
               numberOfLines={1}
+              maxFontSizeMultiplier={HEADER_MAX_SCALE}
               accessibilityRole="header"
               style={{ fontFamily: 'display', fontWeight: '600', fontSize: 20, color: fg }}
             >

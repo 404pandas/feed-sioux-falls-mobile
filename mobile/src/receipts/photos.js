@@ -1,7 +1,8 @@
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+// The classic API (downloadAsync, cacheDirectory); SDK 54 moved it here.
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { api, authHeaders } from '../api/client';
 import { readReceiptText } from './parse';
@@ -13,16 +14,16 @@ const MAX_SIDE = 1600;
 // Take a photo or pick one. Returns { uri, base64, contentType } shrunk to
 // MAX_SIDE as a JPEG, or null if they cancelled.
 export async function getReceiptPhoto(source) {
-  const permission =
-    source === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    Alert.alert(
-      source === 'camera' ? 'Camera is off for this app' : 'Photos are off for this app',
-      'Turn it on in your phone settings, or type the receipt in by hand.'
-    );
-    return null;
+  // Choosing a photo uses Android's photo picker, which needs no permission
+  // (and Google Play doesn't allow asking to read every photo just to pick one).
+  if (source === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Camera is off for this app', 'Turn it on in your phone settings, choose a photo instead, or type the receipt in by hand.');
+      return null;
+    }
   }
-  const options = { mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 1, exif: false };
+  const options = { mediaTypes: ['images'], quality: 1, exif: false };
   const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
   if (result.canceled || !result.assets?.[0]) return null;
 

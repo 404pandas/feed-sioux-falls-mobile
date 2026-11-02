@@ -42,6 +42,7 @@ export default {
         {
           cameraPermission: "Take a photo of a receipt so it's saved with the budget.",
           photosPermission: "Choose a photo of a receipt so it's saved with the budget.",
+          microphonePermission: false,
         },
       ],
     ],
@@ -66,6 +67,16 @@ export default {
       // accident.
       softwareKeyboardLayoutMode: "resize",
       googleServicesFile,
+      // Google Play only allows reading all photos for gallery-type apps.
+      // Receipts use the system photo picker, which needs none of these.
+      blockedPermissions: [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+      ],
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#F5F1E8",

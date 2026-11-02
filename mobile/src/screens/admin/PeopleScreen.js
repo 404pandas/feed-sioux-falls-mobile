@@ -107,7 +107,7 @@ export default function PeopleScreen() {
         </Text>
 
         <Text style={styles.label}>Name</Text>
-        <TextInput value={form.name} onChangeText={(name) => setForm((f) => ({ ...f, name }))} style={inputStyle} placeholder="First and last name" />
+        <TextInput accessibilityLabel="Name" value={form.name} onChangeText={(name) => setForm((f) => ({ ...f, name }))} style={inputStyle} placeholder="First and last name" />
         <Text style={typography.bodyMuted}>This is what they tap on the log in screen.</Text>
 
         <Text style={styles.label}>Role</Text>
@@ -125,7 +125,7 @@ export default function PeopleScreen() {
         ))}
 
         <Text style={styles.label}>{isNew ? 'PIN (4 to 6 digits)' : 'New PIN (leave blank to keep theirs)'}</Text>
-        <TextInput
+        <TextInput accessibilityLabel={editing._id ? 'New PIN' : 'PIN, 4 to 6 digits'}
           value={form.pin}
           onChangeText={(v) => setForm((f) => ({ ...f, pin: v.replace(/\D/g, '').slice(0, 6) }))}
           style={inputStyle}

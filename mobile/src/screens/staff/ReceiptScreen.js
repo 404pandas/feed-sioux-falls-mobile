@@ -202,7 +202,7 @@ export default function ReceiptScreen({ route, navigation }) {
       </Card>
 
       <Text style={styles.label}>Store</Text>
-      <TextInput value={store} onChangeText={setStore} style={inputStyle} placeholder="Where it was bought" maxLength={100} />
+      <TextInput accessibilityLabel="Store" value={store} onChangeText={setStore} style={inputStyle} placeholder="Where it was bought" maxLength={100} />
       <View style={[styles.wrapRow, { marginTop: spacing.xs }]}>
         {COMMON_STORES.map((s) => (
           <Button key={s} title={s} small variant={store === s ? 'primary' : 'outline'} onPress={() => setStore(s)} style={styles.chip} />
@@ -224,7 +224,7 @@ export default function ReceiptScreen({ route, navigation }) {
       )}
 
       <Text style={styles.label}>Total ($)</Text>
-      <TextInput value={total} onChangeText={setTotal} style={inputStyle} keyboardType="decimal-pad" placeholder="0.00" />
+      <TextInput accessibilityLabel="Total, in dollars" value={total} onChangeText={setTotal} style={inputStyle} keyboardType="decimal-pad" placeholder="0.00" />
 
       <Text style={styles.label}>What it was for</Text>
       <View style={styles.wrapRow}>
@@ -235,7 +235,7 @@ export default function ReceiptScreen({ route, navigation }) {
       {category === 'operations' && <Text style={typography.bodyMuted}>{RECEIPT_CATEGORIES[3].sub}</Text>}
 
       <Text style={styles.label}>Note (optional)</Text>
-      <TextInput value={note} onChangeText={setNote} style={[inputStyle, { height: 80, textAlignVertical: 'top' }]} multiline maxLength={500} placeholder="What it was for, who paid, anything the bookkeeper should know" />
+      <TextInput accessibilityLabel="Note" value={note} onChangeText={setNote} style={[inputStyle, { minHeight: 80, textAlignVertical: 'top' }]} multiline maxLength={500} placeholder="What it was for, who paid, anything the bookkeeper should know" />
 
       {existing ? (
         existing.lines?.length > 0 && (
@@ -285,7 +285,7 @@ export default function ReceiptScreen({ route, navigation }) {
             </View>
           ))}
 
-          <TextInput value={itemSearch} onChangeText={setItemSearch} style={[inputStyle, { marginTop: spacing.sm }]} placeholder="Search items to add…" autoCapitalize="none" />
+          <TextInput accessibilityLabel="Search items to add" value={itemSearch} onChangeText={setItemSearch} style={[inputStyle, { marginTop: spacing.sm }]} placeholder="Search items to add…" autoCapitalize="none" />
           {searchResults.map((i) => (
             <Pressable key={i._id} onPress={() => addLine(i)} accessibilityRole="button" style={styles.result}>
               <Text>+ {i.name}</Text>
@@ -309,6 +309,6 @@ const styles = StyleSheet.create({
   photo: { width: '100%', height: 320, marginVertical: spacing.sm, backgroundColor: brand.mist },
   suggestion: { padding: spacing.sm, marginBottom: spacing.xs, borderWidth: 2, borderColor: brand.teal, borderRadius: 12, borderStyle: 'dashed' },
   line: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs, borderTopWidth: 1, borderTopColor: brand.line },
-  qty: { width: 64, marginHorizontal: spacing.xs, paddingVertical: 6, textAlign: 'center' },
+  qty: { minWidth: 64, marginHorizontal: spacing.xs, paddingVertical: 6, textAlign: 'center' },
   result: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: brand.line },
 });

@@ -47,11 +47,15 @@ export function HandsArt({ style, inset = 40 }) {
 }
 
 // "Feed Sioux Falls" with the heart hand - the website's header brand.
-export function BrandMark({ size = 22, imageHeight = 40 }) {
+// maxFontSizeMultiplier: in the header the name shares one row with the
+// Log in/out button, so it grows with the phone's text size only so far.
+export function BrandMark({ size = 22, imageHeight = 40, maxFontSizeMultiplier }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
       <Mascot name="heart" height={imageHeight} style={{ marginRight: 8 }} />
-      <Text style={{ fontFamily: 'display', fontWeight: '600', fontSize: size, color: brand.ink }}>Feed Sioux Falls</Text>
+      <Text style={{ fontFamily: 'display', fontWeight: '600', fontSize: size, color: brand.ink, flexShrink: 1 }} maxFontSizeMultiplier={maxFontSizeMultiplier}>
+        Feed Sioux Falls
+      </Text>
     </View>
   );
 }

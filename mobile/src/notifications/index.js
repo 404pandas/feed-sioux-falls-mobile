@@ -39,7 +39,7 @@ const HIDDEN = { title: 'Feed Sioux Falls', body: 'You have a new update' };
 
 // Show notifications even while the app is open.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
+  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
 });
 
 export async function loadPrefs() {
@@ -100,7 +100,13 @@ async function scheduleOutreachReminder(prefs, permitted) {
     // Saturday (1 = Sunday) at 8:00, phone's local time. Android may hold a
     // scheduled notification up to an hour to save battery, so 8:00 still
     // lands before outreach starts at 10.
-    trigger: { weekday: 7, hour: 8, minute: 0, repeats: true, channelId: hidden ? 'outreach-private' : 'outreach' },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 7,
+      hour: 8,
+      minute: 0,
+      channelId: hidden ? 'outreach-private' : 'outreach',
+    },
   });
 }
 

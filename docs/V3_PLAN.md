@@ -117,3 +117,38 @@ Status: **built** on the `v3-ota-notifications-team-chat` branch (backend + mobi
    the last required reinstall.
 4. From then on, ship app changes with `npm run update --prefix mobile`. Only build a new APK (and bump
    `runtimeVersion`) when a native module is added.
+
+## Google Play (audit, Nov 2)
+
+### Done in the app
+- **Expo SDK 54** (React Native 0.81): targets **Android 16 / API 36**, which Play has required for new apps
+  and updates since Aug 31, 2026. `npm run build:play --prefix mobile` builds the Android App Bundle (AAB) Play
+  takes; `npm run build:android` still makes an APK for hand installs. Both use the `production` update channel.
+- **Keyboard:** Android 15+ draws apps edge to edge and no longer shrinks the screen for the keyboard, which hid
+  Save/Send buttons under it. Every screen now keeps the field being typed in, and the buttons under it,
+  reachable above the keyboard (`react-native-keyboard-controller`, in `components/Screen`).
+- **Large text:** line heights now grow with the phone's text size (lines were overlapping and cut off at
+  200%); the header and tab bar grow less than the rest so they stay on one line; home tiles and survey
+  language buttons go one per row at very large sizes; buttons that split words ("Mont / h") wrap instead.
+- **Screen readers:** every text field has a spoken label (35 didn't), on the website too (16 didn't).
+- **Photos:** receipts use Android's photo picker, which needs no permission. The "read all photos"
+  permissions Play restricts are blocked from the build.
+- **Card donations:** the in-app card form only appears with a live Stripe key (`pk_live_…`). Zeffy, text, and
+  Pledge links always show. Play allows outside payment for donations to tax-exempt nonprofits (501(c)(3)).
+
+### Before submitting (needs you)
+1. **Change production PINs.** The seed file's PINs (in this repo) log in to the live server, at least for
+   Mary Elenius. Reset every admin's PIN from People & logins, and delete or turn off "Volunteer (Test)" and
+   "Neighbor (Test)". A new PIN logs that person out everywhere.
+2. Firebase `google-services.json` + FCM key (see "Setup needed"). Without it, Play reviewers can't get
+   pushes, but the app still works.
+3. Stripe **live** key as an EAS environment variable if you want card donations in the app.
+4. Play Console: a **privacy policy URL** (the app collects survey answers, contact details for follow-up,
+   receipt photos, and push tokens), the **Data safety** form to match, content rating, and target audience.
+5. Personal developer accounts made after Nov 2023 must run a **closed test with 12+ testers for 14 days**
+   before production. An organization account (needs a free D-U-N-S number) skips that.
+6. Store listing: 512×512 icon, 1024×500 feature graphic, and phone screenshots.
+
+### Local testing gotcha
+`mobile/.env` sets `API_URL` to the **live** server. A local native build made without `API_URL` set in the
+shell points at production. Always build with `API_URL=http://10.0.2.2:4000` (emulator) for testing.

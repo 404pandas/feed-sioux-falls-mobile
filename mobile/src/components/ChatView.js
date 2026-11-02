@@ -43,43 +43,45 @@ export default function ChatView({ messages, userId, onSend, onDelete, canDelete
 
   return (
     <>
-      <FlatList
-        inverted
-        data={messages ? [...messages].reverse() : []}
-        keyExtractor={(m) => m._id}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        onEndReached={onLoadOlder}
-        onEndReachedThreshold={0.3}
-        contentContainerStyle={{ paddingVertical: spacing.sm, flexGrow: 1 }}
-        renderItem={({ item }) => {
-          const mine = String(item.author?._id) === String(userId);
-          const deletable = onDelete && canDelete?.(item);
-          return (
-            <Pressable
-              onLongPress={deletable ? () => confirmDelete(item) : undefined}
-              accessibilityHint={deletable ? 'Press and hold to delete' : undefined}
-              accessibilityLabel={`${mine ? 'You' : item.author?.name || 'Someone'}, ${formatTime(item.createdAt)}: ${item.body}`}
-              style={[styles.bubble, mine ? styles.mine : styles.theirs]}
-            >
-              {!mine && (
-                <Text style={styles.author}>
-                  {item.author?.name || 'Someone'}
-                  {item.author?.role ? ` · ${ROLE_LABEL[item.author.role] || item.author.role}` : ''}
-                </Text>
-              )}
-              <Text style={{ color: mine ? colors.white : colors.text }}>{item.body}</Text>
-              <Text style={[styles.time, mine && { color: brand.tealSoft }]}>{formatTime(item.createdAt)}</Text>
-            </Pressable>
-          );
-        }}
-        ListEmptyComponent={
-          // Inverted lists flip their children too.
-          <View style={{ transform: [{ scaleY: -1 }] }}>
-            <Text style={typography.bodyMuted}>{messages === null ? error || 'Loading…' : emptyText}</Text>
-          </View>
-        }
-      />
+      {messages && messages.length > 0 ? (
+        <FlatList
+          inverted
+          data={messages ? [...messages].reverse() : []}
+          keyExtractor={(m) => m._id}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          onEndReached={onLoadOlder}
+          onEndReachedThreshold={0.3}
+          contentContainerStyle={{ paddingVertical: spacing.sm, flexGrow: 1 }}
+          renderItem={({ item }) => {
+            const mine = String(item.author?._id) === String(userId);
+            const deletable = onDelete && canDelete?.(item);
+            return (
+              <Pressable
+                onLongPress={deletable ? () => confirmDelete(item) : undefined}
+                accessibilityHint={deletable ? 'Press and hold to delete' : undefined}
+                accessibilityLabel={`${mine ? 'You' : item.author?.name || 'Someone'}, ${formatTime(item.createdAt)}: ${item.body}`}
+                style={[styles.bubble, mine ? styles.mine : styles.theirs]}
+              >
+                {!mine && (
+                  <Text style={styles.author}>
+                    {item.author?.name || 'Someone'}
+                    {item.author?.role ? ` · ${ROLE_LABEL[item.author.role] || item.author.role}` : ''}
+                  </Text>
+                )}
+                <Text style={{ color: mine ? colors.white : colors.text }}>{item.body}</Text>
+                <Text style={[styles.time, mine && { color: brand.tealSoft }]}>{formatTime(item.createdAt)}</Text>
+              </Pressable>
+            );
+          }}
+        />
+      ) : (
+        // Shown outside the list: an inverted (newest-at-bottom) list flips
+        // its empty state differently across React Native versions.
+        <View style={{ flex: 1, justifyContent: 'flex-end', paddingVertical: spacing.sm }}>
+          <Text style={typography.bodyMuted}>{messages === null ? error || 'Loading…' : emptyText}</Text>
+        </View>
+      )}
 
       {!!error && messages !== null && (
         <Text style={[typography.bodyMuted, { color: colors.danger, marginBottom: spacing.xs }]}>

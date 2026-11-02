@@ -169,7 +169,7 @@ export default function InventoryScreen() {
           </Text>
 
           <Text style={styles.label}>Name</Text>
-          <TextInput value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} style={styles.input} placeholder="Bar soap (individually wrapped)" />
+          <TextInput accessibilityLabel="Name" value={form.name} onChangeText={(v) => setForm((f) => ({ ...f, name: v }))} style={styles.input} placeholder="Bar soap (individually wrapped)" />
 
           <Text style={styles.label}>Category</Text>
           {/* Sized to their words and wrapping as a group - three equal
@@ -188,10 +188,10 @@ export default function InventoryScreen() {
           </View>
 
           <Text style={styles.label}>Unit type (e.g. "bar", "pair", "bottle")</Text>
-          <TextInput value={form.unitType} onChangeText={(v) => setForm((f) => ({ ...f, unitType: v }))} style={styles.input} placeholder="bar" />
+          <TextInput accessibilityLabel="Unit type" value={form.unitType} onChangeText={(v) => setForm((f) => ({ ...f, unitType: v }))} style={styles.input} placeholder="bar" />
 
           <Text style={styles.label}>Unit cost ($)</Text>
-          <TextInput value={form.unitCost} onChangeText={(v) => setForm((f) => ({ ...f, unitCost: v }))} style={styles.input} keyboardType="decimal-pad" placeholder="0.11" />
+          <TextInput accessibilityLabel="Unit cost, in dollars" value={form.unitCost} onChangeText={(v) => setForm((f) => ({ ...f, unitCost: v }))} style={styles.input} keyboardType="decimal-pad" placeholder="0.11" />
 
           <Text style={styles.label}>{editingItem ? 'In stock' : 'Starting stock'}</Text>
           {editingItem ? (
@@ -201,11 +201,11 @@ export default function InventoryScreen() {
               the history.
             </Text>
           ) : (
-            <TextInput value={form.currentStock} onChangeText={(v) => setForm((f) => ({ ...f, currentStock: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
+            <TextInput accessibilityLabel="Starting stock" value={form.currentStock} onChangeText={(v) => setForm((f) => ({ ...f, currentStock: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
           )}
 
           <Text style={styles.label}>Low stock threshold</Text>
-          <TextInput value={form.lowThreshold} onChangeText={(v) => setForm((f) => ({ ...f, lowThreshold: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
+          <TextInput accessibilityLabel="Low stock threshold" value={form.lowThreshold} onChangeText={(v) => setForm((f) => ({ ...f, lowThreshold: v }))} style={styles.input} keyboardType="number-pad" placeholder="0" />
 
           <Text style={[styles.label, { marginTop: spacing.md }]}>Where to buy (optional)</Text>
           <Text style={typography.bodyMuted}>Add Amazon, Temu, or any store. With a price and pack size, the cheapest per unit is marked.</Text>
@@ -244,7 +244,7 @@ export default function InventoryScreen() {
           <>
             <Button title="+ Add Item" onPress={openCreateForm} style={{ marginBottom: spacing.md }} />
 
-            <TextInput
+            <TextInput accessibilityLabel="Search items"
               value={search}
               onChangeText={setSearch}
               style={[styles.input, { marginBottom: spacing.sm }]}
