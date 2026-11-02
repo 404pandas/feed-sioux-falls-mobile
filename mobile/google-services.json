@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "345703824410",
+    "project_id": "feed-sioux-falls",
+    "storage_bucket": "feed-sioux-falls.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:345703824410:android:8412c671c57eb9952325a3",
+        "android_client_info": {
+          "package_name": "com.feedsiouxfalls.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPfAhysxpnoIBWBbIfqapwhovDfY-Muik"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
