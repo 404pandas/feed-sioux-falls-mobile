@@ -47,7 +47,9 @@ export default function TabBar({ state, descriptors, navigation }) {
               />
             )}
             <Icon name={options.tabIcon} size={26} color={color} />
-            <Text style={{ fontSize: 13, fontWeight: '700', color, marginTop: 2 }} numberOfLines={1}>
+            {/* Five tabs share the width: labels grow with the phone's text size,
+                but only so far, so they stay readable instead of cut off. */}
+            <Text style={{ fontSize: 13, fontWeight: '700', color, marginTop: 2 }} numberOfLines={1} maxFontSizeMultiplier={1.2}>
               {label}
             </Text>
           </Pressable>

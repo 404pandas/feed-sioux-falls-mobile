@@ -11,7 +11,7 @@ import { websiteUrl } from '../../config/org';
 // the public screens, then Log out. The database pages (All data, People &
 // logins, Change log) are website-only, so they open the website.
 const RUN = [
-  { route: 'Messages', icon: 'mail', title: 'Messages', sub: '"I need help" requests and notes from the contact form' },
+  { route: 'Messages', icon: 'mail', title: 'Help requests', sub: '"I need help" requests and notes from the contact form' },
   { route: 'SendNotification', icon: 'bell', title: 'Send a notification', sub: 'To volunteers, or to everyone with the app' },
   { route: 'SurveyResults', icon: 'chart', title: 'Survey results', sub: 'Totals and people who asked to be contacted' },
   { route: 'ManageItems', icon: 'edit', title: 'Edit items', sub: 'Add, rename, set low marks and costs' },
@@ -72,7 +72,7 @@ export default function MoreScreen({ navigation }) {
         </>
       )}
       <Group title="Team" />
-      <Row icon="chat" title="Team chat" sub="Talk with volunteers and admins" onPress={() => navigation.navigate('TeamChat')} />
+      <Row icon="chat" title="Messages" sub="Team chat, and messages to the people you choose" onPress={() => navigation.navigate('Inbox')} />
       <Row
         icon="wallet"
         title="Receipts & budget"

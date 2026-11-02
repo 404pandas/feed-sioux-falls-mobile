@@ -18,6 +18,7 @@ const adminRoutes = require('./routes/admin');
 const notificationRoutes = require('./routes/notifications');
 const teamChatRoutes = require('./routes/teamChat');
 const receiptRoutes = require('./routes/receipts');
+const inboxRoutes = require('./routes/inbox');
 
 const app = express();
 
@@ -76,6 +77,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/team-chat', teamChatRoutes);
 // Receipts (with photos), counted against the monthly budget.
 app.use('/api/receipts', receiptRoutes);
+// Messages between chosen volunteers and admins.
+app.use('/api/inbox', inboxRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });

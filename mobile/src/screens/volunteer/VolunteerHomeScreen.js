@@ -167,13 +167,13 @@ export default function VolunteerHomeScreen({ navigation }) {
 
         <Card style={{ marginBottom: spacing.xl }}>
           <Text style={styles.label}>Location</Text>
-          <TextInput value={startLocation} onChangeText={setStartLocation} style={styles.input} placeholder="Where is this happening?" />
+          <TextInput accessibilityLabel="Location" value={startLocation} onChangeText={setStartLocation} style={styles.input} placeholder="Where is this happening?" />
 
           <Text style={styles.label}>Notes (optional)</Text>
-          <TextInput
+          <TextInput accessibilityLabel="Notes"
             value={startDetails}
             onChangeText={setStartDetails}
-            style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+            style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]}
             placeholder="Weather, expected turnout, anything worth noting"
             multiline
           />

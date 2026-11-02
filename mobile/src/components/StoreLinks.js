@@ -111,7 +111,7 @@ export default function StoreLinksEditor({ value, onChange }) {
               ))}
             </View>
             {s.store === 'other' && (
-              <TextInput value={s.note} onChangeText={(v) => update(i, 'note', v)} style={[inputStyle, styles.gap]} placeholder="Store name" />
+              <TextInput accessibilityLabel="Store name" value={s.note} onChangeText={(v) => update(i, 'note', v)} style={[inputStyle, styles.gap]} placeholder="Store name" />
             )}
             <TextInput
               value={s.url}

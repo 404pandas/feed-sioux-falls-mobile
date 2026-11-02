@@ -54,7 +54,7 @@ export default function MessagesScreen() {
 
   return (
     <Screen refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
-      <Text style={typography.h1}>Messages</Text>
+      <Text style={typography.h1}>Help requests</Text>
       <Text style={[typography.bodyMuted, { marginTop: spacing.xs, marginBottom: spacing.md }]}>
         From the contact form. {openCount} open. Pull down to refresh.
       </Text>

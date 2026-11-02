@@ -7,7 +7,8 @@ import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import ViewShot from 'react-native-view-shot';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+// The classic API (downloadAsync, cacheDirectory); SDK 54 moved it here.
+import * as FileSystem from 'expo-file-system/legacy';
 import Card from '../../components/Card';
 import Screen from '../../components/Screen';
 import Button from '../../components/Button';
@@ -119,7 +120,7 @@ function BarRow({ label, value, max, color, sublabel, pctOverride }) {
   return (
     <View style={{ marginBottom: spacing.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={[typography.body, { flexShrink: 1, marginRight: spacing.sm }]} numberOfLines={1}>{label}</Text>
+        <Text style={[typography.body, { flexShrink: 1, marginRight: spacing.sm }]} numberOfLines={2}>{label}</Text>
         <Text style={typography.bodyMuted}>{value}</Text>
       </View>
       {!!sublabel && <Text style={typography.bodyMuted}>{sublabel}</Text>}
@@ -408,14 +409,16 @@ export default function ReportBuilderScreen() {
       )}
 
       <Text style={[styles.label, { marginTop: spacing.md }]}>Group Charts By</Text>
-      <View style={{ flexDirection: 'row', marginBottom: spacing.md }}>
+      {/* Sized to their words: three equal columns broke "Month" in two at
+          large text sizes. */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md }}>
         {['week', 'month', 'year'].map((g) => (
           <Button
             key={g}
             title={g[0].toUpperCase() + g.slice(1)}
             variant={groupBy === g ? 'primary' : 'outline'}
             onPress={() => setGroupBy(g)}
-            style={{ flex: 1, marginRight: g !== 'year' ? spacing.sm : 0, minHeight: 40 }}
+            style={{ marginRight: spacing.sm, marginBottom: spacing.xs, paddingHorizontal: spacing.md, minHeight: 40 }}
           />
         ))}
       </View>
@@ -434,10 +437,10 @@ export default function ReportBuilderScreen() {
       </Card>
 
       <Text style={styles.label}>Notes for this report (optional)</Text>
-      <TextInput
+      <TextInput accessibilityLabel="Notes for this report"
         value={narrative}
         onChangeText={setNarrative}
-        style={[styles.input, { height: 100, textAlignVertical: 'top', marginBottom: spacing.lg }]}
+        style={[styles.input, { minHeight: 100, textAlignVertical: 'top', marginBottom: spacing.lg }]}
         placeholder="Qualitative context for grant reviewers - stories, changes observed, needs identified…"
         multiline
       />

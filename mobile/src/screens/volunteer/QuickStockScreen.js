@@ -97,7 +97,7 @@ export default function QuickStockScreen() {
               </Card>
             )}
 
-            <TextInput
+            <TextInput accessibilityLabel="Search items"
               value={search}
               onChangeText={setSearch}
               style={[styles.input, { marginBottom: spacing.sm }]}

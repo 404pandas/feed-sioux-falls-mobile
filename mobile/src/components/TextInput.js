@@ -5,7 +5,7 @@ import { colors } from '../theme/tokens';
 
 // Text fields get the body font too (and a readable placeholder color).
 const TextInput = forwardRef(function TextInput({ style, ...props }, ref) {
-  return <RNTextInput ref={ref} placeholderTextColor="#8A837C" {...props} style={resolveFont([{ color: colors.text }, style])} />;
+  return <RNTextInput ref={ref} placeholderTextColor="#8A837C" {...props} style={resolveFont([{ color: colors.text }, style], props.maxFontSizeMultiplier)} />;
 });
 
 export default TextInput;

@@ -30,6 +30,7 @@ export default function Button({
   style,
   textColor: textColorOverride,
   accessibilityLabel,
+  maxFontSizeMultiplier,
 }) {
   const v = VARIANTS[variant] || VARIANTS.primary;
   const fg = textColorOverride || v.fg;
@@ -72,6 +73,7 @@ export default function Button({
               {icon && <Icon name={icon} size={small ? 18 : 20} color={fg} style={{ marginRight: 8 }} />}
               <Text
                 style={{ fontFamily: 'display', fontWeight: '600', fontSize: small ? 16 : 19, color: fg, textAlign: 'center' }}
+                maxFontSizeMultiplier={maxFontSizeMultiplier}
               >
                 {title}
               </Text>

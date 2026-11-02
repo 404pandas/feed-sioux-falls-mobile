@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { View, Pressable, Alert, StyleSheet, ScrollView } from 'react-native';
+import { View, Pressable, Alert, StyleSheet, PixelRatio } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Text from '../../components/Text';
 import TextInput from '../../components/TextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +18,7 @@ import SurveyQuestion, { ReadAloudButton } from '../../survey/SurveyQuestion';
 import ShareSurvey from '../../survey/ShareSurvey';
 import TranslationPlaceholder from '../../survey/TranslationPlaceholder';
 import BackLink from '../../components/BackLink';
+import { HEADER_MAX_SCALE } from '../../components/AppHeader';
 
 const EMPTY_CONTACT = { wants: null, name: '', phone: '', email: '', bestTime: '', safeToLeaveMessage: null };
 
@@ -112,7 +114,9 @@ export default function SurveyScreen({ navigation }) {
           hitSlop={10}
           style={styles.quickExit}
         >
-          <Text style={styles.quickExitText}>{ui.quickExit}</Text>
+          <Text style={styles.quickExitText} maxFontSizeMultiplier={HEADER_MAX_SCALE}>
+            {ui.quickExit}
+          </Text>
         </Pressable>
       ),
     });
@@ -240,11 +244,11 @@ export default function SurveyScreen({ navigation }) {
             accessibilityLabel={l.nativeName === l.englishName ? l.nativeName : `${l.nativeName}, ${l.englishName}`}
             style={[styles.langButton, active && styles.langButtonActive]}
           >
-            <Text style={[styles.langText, active && styles.langTextActive]} numberOfLines={1}>
+            <Text style={[styles.langText, active && styles.langTextActive]} numberOfLines={2}>
               {l.nativeName}
             </Text>
             {l.nativeName !== l.englishName && (
-              <Text style={[styles.langSub, active && styles.langTextActive]} numberOfLines={1}>
+              <Text style={[styles.langSub, active && styles.langTextActive]} numberOfLines={2}>
                 {l.englishName}
               </Text>
             )}
@@ -379,18 +383,13 @@ export default function SurveyScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
-      >
+      {/* Keeps the field being typed in (and Send under it) above the keyboard. */}
+      <KeyboardAwareScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bottomOffset={96}>
         {/* The normal way out - saved progress stays, unlike Quick Exit. */}
         <BackLink label={user ? ui.backHome : ui.backHomeGuest} onPress={() => navigation.popToTop()} />
         {languagePicker}
         {body}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
@@ -436,13 +435,13 @@ function ContactStep({ ui, contact, setContact, speech }) {
       {contact.wants === true && (
         <Card style={{ marginTop: spacing.sm }}>
           <Text style={styles.fieldLabel}>{ui.contactName}</Text>
-          <TextInput value={contact.name} onChangeText={update('name')} style={styles.input} autoComplete="off" />
+          <TextInput accessibilityLabel={ui.contactName} value={contact.name} onChangeText={update('name')} style={styles.input} autoComplete="off" />
 
           <Text style={styles.fieldLabel}>{ui.contactPhone}</Text>
-          <TextInput value={contact.phone} onChangeText={update('phone')} style={styles.input} keyboardType="phone-pad" autoComplete="off" />
+          <TextInput accessibilityLabel={ui.contactPhone} value={contact.phone} onChangeText={update('phone')} style={styles.input} keyboardType="phone-pad" autoComplete="off" />
 
           <Text style={styles.fieldLabel}>{ui.contactEmail}</Text>
-          <TextInput
+          <TextInput accessibilityLabel={ui.contactEmail}
             value={contact.email}
             onChangeText={update('email')}
             style={styles.input}
@@ -453,7 +452,7 @@ function ContactStep({ ui, contact, setContact, speech }) {
           />
 
           <Text style={styles.fieldLabel}>{ui.contactBestTime}</Text>
-          <TextInput value={contact.bestTime} onChangeText={update('bestTime')} style={styles.input} autoComplete="off" />
+          <TextInput accessibilityLabel={ui.contactBestTime} value={contact.bestTime} onChangeText={update('bestTime')} style={styles.input} autoComplete="off" />
 
           <Text style={[styles.fieldLabel, { marginTop: spacing.md }]}>{ui.contactSafe}</Text>
           {[
@@ -479,7 +478,8 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   langRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: spacing.md },
   langButton: {
-    width: '48.5%',
+    // One per row at very large text sizes, so every language name fits.
+    width: PixelRatio.getFontScale() >= 1.6 ? '100%' : '48.5%',
     minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',

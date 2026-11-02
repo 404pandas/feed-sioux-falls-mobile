@@ -133,7 +133,7 @@ export default function BudgetScreen({ navigation }) {
               ) : (
                 <View style={{ marginTop: spacing.md }}>
                   <Text style={[typography.label, { marginBottom: spacing.xs }]}>Budget for {monthName(month)} ($)</Text>
-                  <TextInput value={editingBudget} onChangeText={setEditingBudget} keyboardType="decimal-pad" style={inputStyle} autoFocus />
+                  <TextInput accessibilityLabel={`Budget for ${monthName(month)}, in dollars`} value={editingBudget} onChangeText={setEditingBudget} keyboardType="decimal-pad" style={inputStyle} autoFocus />
                   <View style={{ flexDirection: 'row', marginTop: spacing.sm }}>
                     <Button title="Cancel" small variant="outline" onPress={() => setEditingBudget(null)} style={{ marginRight: spacing.sm }} />
                     <Button title="Save" small onPress={saveBudget} loading={savingBudget} />

@@ -118,10 +118,10 @@ export function DonateCard({ style }) {
       />
 
       <Text style={styles.label}>Your name (optional)</Text>
-      <TextInput value={donorName} onChangeText={setDonorName} style={styles.input} placeholder="Jane Doe" />
+      <TextInput accessibilityLabel="Your name (optional)" value={donorName} onChangeText={setDonorName} style={styles.input} placeholder="Jane Doe" />
 
       <Text style={styles.label}>Email (optional)</Text>
-      <TextInput
+      <TextInput accessibilityLabel="Email (optional)"
         value={donorEmail}
         onChangeText={setDonorEmail}
         style={styles.input}
@@ -198,13 +198,13 @@ export function ContactCard({ defaultCategory = 'contact', title, style }) {
       </View>
 
       <Text style={styles.label}>Name (optional)</Text>
-      <TextInput value={name} onChangeText={setName} style={styles.input} placeholder="Your name" />
+      <TextInput accessibilityLabel="Name (optional)" value={name} onChangeText={setName} style={styles.input} placeholder="Your name" />
 
       <Text style={styles.label}>Phone (optional)</Text>
-      <TextInput value={phone} onChangeText={setPhone} style={styles.input} placeholder="(605) 555-0100" keyboardType="phone-pad" />
+      <TextInput accessibilityLabel="Phone (optional)" value={phone} onChangeText={setPhone} style={styles.input} placeholder="(605) 555-0100" keyboardType="phone-pad" />
 
       <Text style={styles.label}>Email (optional)</Text>
-      <TextInput
+      <TextInput accessibilityLabel="Email (optional)"
         value={email}
         onChangeText={setEmail}
         style={styles.input}
@@ -214,10 +214,10 @@ export function ContactCard({ defaultCategory = 'contact', title, style }) {
       />
 
       <Text style={styles.label}>Message</Text>
-      <TextInput
+      <TextInput accessibilityLabel="Message"
         value={message}
         onChangeText={setMessage}
-        style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
+        style={[styles.input, { minHeight: 120, textAlignVertical: 'top' }]}
         placeholder="How can we help?"
         multiline
       />

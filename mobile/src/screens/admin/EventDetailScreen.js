@@ -113,7 +113,7 @@ export default function EventDetailScreen({ route, navigation }) {
       {adjusting ? (
         <Card style={{ marginBottom: spacing.lg }}>
           <Text style={typography.body}>Do you want to adjust the count from {totalServed}?</Text>
-          <TextInput
+          <TextInput accessibilityLabel="New total of people served"
             value={adjustedTotal}
             onChangeText={setAdjustedTotal}
             style={[styles.input, { marginTop: spacing.sm }]}
@@ -130,13 +130,13 @@ export default function EventDetailScreen({ route, navigation }) {
       )}
 
       <Text style={styles.label}>Location</Text>
-      <TextInput value={location} onChangeText={setLocation} style={styles.input} />
+      <TextInput accessibilityLabel="Location" value={location} onChangeText={setLocation} style={styles.input} />
 
       <Text style={styles.label}>Notes</Text>
-      <TextInput
+      <TextInput accessibilityLabel="Notes"
         value={details}
         onChangeText={setDetails}
-        style={[styles.input, { height: 140, textAlignVertical: 'top' }]}
+        style={[styles.input, { minHeight: 140, textAlignVertical: 'top' }]}
         placeholder="Total guests, weather, what ran out, anything worth remembering…"
         multiline
       />

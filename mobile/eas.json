@@ -17,7 +17,26 @@
         "API_URL": "https://feed-sioux-falls-mobile.onrender.com"
       },
       "autoIncrement": true,
-      "channel": "preview"
+      "channel": "production"
+    },
+    "production": {
+      "node": "20.19.4",
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "API_URL": "https://feed-sioux-falls-mobile.onrender.com"
+      },
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
     }
   }
 }

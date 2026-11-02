@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Pressable, RefreshControl } from 'react-native';
+import { View, Pressable, RefreshControl, PixelRatio } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Text from '../../components/Text';
 import Screen from '../../components/Screen';
@@ -19,6 +19,10 @@ function greeting() {
   return 'Good evening';
 }
 
+// Two tiles per row normally; one per row at very large text sizes, where
+// half the screen is too narrow for words like "Inventory".
+const HALF = PixelRatio.getFontScale() >= 1.6 ? '100%' : '48.5%';
+
 const TILE = {
   teal: { bg: brand.teal, fg: colors.white, sub: brand.tealSoft },
   coin: { bg: brand.coinSoft, fg: brand.ink, sub: colors.textMuted },
@@ -29,7 +33,7 @@ const TILE = {
 function ActionTile({ icon, title, sub, tone = 'plain', onPress }) {
   const t = TILE[tone];
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`} style={{ width: '48.5%', marginBottom: spacing.md }}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`} style={{ width: HALF, marginBottom: spacing.md }}>
       {({ pressed }) => (
         <Lift
           offset={lift}
@@ -57,7 +61,7 @@ function Stat({ value, label, tone, onPress }) {
     </View>
   );
   return (
-    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : 'text'} style={{ width: '48.5%', marginBottom: spacing.md }}>
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : 'text'} style={{ width: HALF, marginBottom: spacing.md }}>
       {body}
     </Pressable>
   );
@@ -80,7 +84,8 @@ export default function StaffHomeScreen({ navigation }) {
     const jobs = [
       api.getItems().then(setItems).catch(() => setItems((v) => v || [])),
       api.getPublicSummary().then(setSummary).catch(() => {}),
-      countUnreadChat(user?._id).then(setUnreadChat).catch(() => {}),
+      Promise.all([countUnreadChat(user?._id).catch(() => 0), api.getInboxUnread().then((r) => r.count).catch(() => 0)])
+        .then(([team, inbox]) => setUnreadChat(team + inbox)),
     ];
     if (isAdmin) {
       jobs.push(api.getCurrentBudget().then(setBudget).catch(() => {}));
@@ -126,15 +131,15 @@ export default function StaffHomeScreen({ navigation }) {
         <ActionTile
           tone="heart"
           icon="chat"
-          title="Team chat"
-          sub={unreadChat ? `${unreadChat} new message${unreadChat === 1 ? '' : 's'}` : 'Talk with volunteers and admins'}
-          onPress={() => navigation.navigate('TeamChat')}
+          title="Messages"
+          sub={unreadChat ? `${unreadChat} new` : 'Write to volunteers and admins'}
+          onPress={() => navigation.navigate('Inbox')}
         />
         {isAdmin && (
           <>
             <ActionTile
               icon="mail"
-              title="Messages"
+              title="Help requests"
               sub={inbox ? `${inbox.messages} new · ${inbox.contactRequests} asked to be contacted` : 'From the website and app'}
               onPress={() => navigation.navigate('Messages')}
             />

@@ -8,7 +8,14 @@ import { ContactCard, DonateCard } from '../../components/SupportForms';
 import { Band, PageTitle, SectionHead, EmptyNote } from '../../components/Brand';
 import { NeedCard, NeedsList, usePublicSummary } from '../../components/PublicData';
 import { ORG } from '../../config/org';
+import Constants from 'expo-constants';
 import { spacing, typography } from '../../theme/tokens';
+
+// The card form only shows with a live Stripe key (or while developing), so
+// nobody - including Google Play's reviewers - can "donate" in test mode
+// and have it go nowhere. Zeffy, text-to-give, and Pledge always show.
+const cardDonationsLive = /^pk_live_/.test(Constants.expoConfig?.extra?.stripePublishableKey || '');
+const showCardForm = cardDonationsLive || __DEV__;
 import { GiveTile, open } from './parts';
 
 // The website's Give page.
@@ -44,11 +51,18 @@ export default function GiveScreen({ navigation }) {
           body="Another easy way to give online."
           button={{ title: 'Give on Pledge', iconRight: 'external', variant: 'outline', onPress: open(ORG.links.pledge) }}
         />
-        <Text style={[typography.h2, { marginTop: spacing.sm, marginBottom: spacing.sm }]}>Or give by card right here</Text>
-        <Text style={[typography.body, { marginBottom: spacing.md }]}>
-          $2,800 restocks hygiene and winter supplies for a whole month. Any amount helps.
-        </Text>
-        <DonateCard />
+        {showCardForm && (
+          <>
+            <Text style={[typography.h2, { marginTop: spacing.sm, marginBottom: spacing.sm }]}>Or give by card right here</Text>
+            <Text style={[typography.body, { marginBottom: spacing.md }]}>
+              $2,800 restocks hygiene and winter supplies for a whole month. Any amount helps.
+            </Text>
+            {!cardDonationsLive && (
+              <Text style={[typography.bodyMuted, { marginBottom: spacing.sm, fontWeight: '700' }]}>Test mode: no real charge.</Text>
+            )}
+            <DonateCard />
+          </>
+        )}
       </Band>
 
       <Band tone="coin">

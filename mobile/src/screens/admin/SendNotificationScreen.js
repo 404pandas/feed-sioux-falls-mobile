@@ -136,18 +136,18 @@ export default function SendNotificationScreen() {
       )}
 
       <Text style={styles.label}>Title</Text>
-      <TextInput value={title} onChangeText={setTitle} maxLength={TITLE_MAX} style={inputStyle} placeholder="Meet at 9:30 Saturday" />
+      <TextInput accessibilityLabel="Title" value={title} onChangeText={setTitle} maxLength={TITLE_MAX} style={inputStyle} placeholder="Meet at 9:30 Saturday" />
       <Text style={styles.counter}>
         {title.length}/{TITLE_MAX}
       </Text>
 
       <Text style={styles.label}>Message</Text>
-      <TextInput
+      <TextInput accessibilityLabel="Message"
         value={body}
         onChangeText={setBody}
         maxLength={BODY_MAX}
         multiline
-        style={[inputStyle, { height: 110, textAlignVertical: 'top' }]}
+        style={[inputStyle, { minHeight: 110, textAlignVertical: 'top' }]}
         placeholder="It's cold - bring extra gloves if you have them."
       />
       <Text style={styles.counter}>
