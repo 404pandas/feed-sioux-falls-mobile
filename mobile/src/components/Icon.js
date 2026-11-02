@@ -33,6 +33,9 @@ const PATHS = {
   chevronLeft: 'M15 5l-7 7 7 7',
   chevronRight: 'M9 5l7 7-7 7',
   history: 'M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4M12 8v4l3 2',
+  bell: 'M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0',
+  chat: 'M4 5h16v11H9l-5 4zM8 9.5h8M8 12.5h5',
+  send: 'M4 12 20 4l-4 16-4-6.5zM12 13.5 20 4',
 };
 
 export default function Icon({ name, size = 22, color = brand.ink, strokeWidth = 2.2, style }) {

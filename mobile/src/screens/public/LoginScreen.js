@@ -11,6 +11,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { brand, colors, inputStyle, liftSmall, radii, spacing, typography } from '../../theme/tokens';
 import Lift from '../../components/Lift';
+import { versionLabel } from '../../components/UpdateBanner';
 
 const ROLE_ORDER = { admin: 0, volunteer: 1, neighbor: 2 };
 const ROLE_LABEL = { admin: 'Admin', volunteer: 'Volunteer', neighbor: 'Neighbor' };
@@ -134,7 +135,7 @@ export default function LoginScreen({ navigation }) {
 
       {/* So you can tell at a glance which build is installed. */}
       <Text style={[typography.bodyMuted, { textAlign: 'center', marginTop: 'auto', paddingTop: spacing.lg }]}>
-        Version {Constants.expoConfig?.version}
+        Version {versionLabel(Constants.expoConfig?.version)}
       </Text>
     </Screen>
   );

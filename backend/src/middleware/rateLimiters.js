@@ -38,4 +38,12 @@ const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please wait a few minutes and try again.' },
 });
 
-module.exports = { contactLimiter, donateLimiter, loginLimiter, surveyLimiter };
+// Turning notifications on/off and changing switches - a phone does this a
+// handful of times, so this only stops scripts filling the device list.
+const deviceLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many changes. Please try again in a few minutes.' },
+});
+
+module.exports = { contactLimiter, deviceLimiter, donateLimiter, loginLimiter, surveyLimiter };

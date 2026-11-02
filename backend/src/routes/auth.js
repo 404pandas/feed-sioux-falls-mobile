@@ -28,7 +28,8 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
     return res.status(401).json({ error: 'Incorrect PIN.' });
   }
 
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+  // sv: see sessionVersion in models/User.js.
+  const token = jwt.sign({ userId: user._id, sv: user.sessionVersion || 0 }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '30d',
   });
 

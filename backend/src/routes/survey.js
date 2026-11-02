@@ -1,10 +1,8 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const SurveyResponse = require('../models/SurveyResponse');
 const SurveyContactRequest = require('../models/SurveyContactRequest');
-const User = require('../models/User');
 const { surveyLimiter } = require('../middleware/rateLimiters');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireAdmin, userFromToken, tokenFrom } = require('../middleware/auth');
 const { SURVEY_QUESTIONS, SURVEY_LANGUAGES, sanitizeAnswers } = require('../utils/surveyQuestions');
 const asyncHandler = require('../utils/asyncHandler');
 
@@ -17,17 +15,9 @@ const router = express.Router();
 // volunteer-entered. The volunteer's identity is NOT saved with the
 // response.
 async function detectStaff(req, res, next) {
-  req.isStaff = false;
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return next();
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.userId);
-    req.isStaff = !!user && user.active && (user.role === 'admin' || user.role === 'volunteer');
-  } catch {
-    // Bad/expired token - just treat them as a member of the public.
-  }
+  // A bad, expired, or replaced login just means "a member of the public".
+  const user = await userFromToken(tokenFrom(req));
+  req.isStaff = !!user && (user.role === 'admin' || user.role === 'volunteer');
   next();
 }
 

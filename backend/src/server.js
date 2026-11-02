@@ -15,6 +15,9 @@ const contactRoutes = require('./routes/contact');
 const surveyRoutes = require('./routes/survey');
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
+const notificationRoutes = require('./routes/notifications');
+const teamChatRoutes = require('./routes/teamChat');
+const receiptRoutes = require('./routes/receipts');
 
 const app = express();
 
@@ -47,6 +50,10 @@ app.use(
 // must be registered before express.json() below.
 app.use('/api/donate/webhook', express.raw({ type: 'application/json' }));
 
+// Receipt photos are sent as base64 in JSON - give that route room for one
+// (phones shrink photos to a few hundred KB first).
+app.use('/api/receipts', express.json({ limit: '5mb' }));
+
 app.use(express.json());
 app.use(mongoSanitize());
 
@@ -63,6 +70,12 @@ app.use('/api/survey', surveyRoutes);
 app.use('/api/public', publicRoutes);
 // Admin Data screens - full view/add/edit/delete, admins only.
 app.use('/api/admin', adminRoutes);
+// Push notifications: phones turning them on/off, and admins sending.
+app.use('/api/notifications', notificationRoutes);
+// Team chat for volunteers and admins.
+app.use('/api/team-chat', teamChatRoutes);
+// Receipts (with photos), counted against the monthly budget.
+app.use('/api/receipts', receiptRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });

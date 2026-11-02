@@ -7,6 +7,7 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { colors, spacing, typography, radii, inputStyle } from '../../theme/tokens';
 import { api } from '../../api/client';
+import { ReorderLinks } from '../../components/StoreLinks';
 import { queueAction, getQueueSize } from '../../utils/offlineQueue';
 
 const STEPS = [1, 10, 20];
@@ -161,6 +162,7 @@ export default function QuickStockScreen() {
                   />
                 ))}
               </View>
+              {isLow && <ReorderLinks item={item} style={{ marginTop: spacing.sm }} />}
             </Card>
           );
         }}
