@@ -142,7 +142,9 @@ Status: **built** on the `v3-ota-notifications-team-chat` branch (backend + mobi
    "Neighbor (Test)". A new PIN logs that person out everywhere.
 2. Firebase `google-services.json` + FCM key (see "Setup needed"). Without it, Play reviewers can't get
    pushes, but the app still works.
-3. Stripe **live** key as an EAS environment variable if you want card donations in the app.
+3. Stripe **live** key as an EAS environment variable (`STRIPE_PUBLISHABLE_KEY`, Production + Preview) if you want card
+   donations in the app. `npm run update` uses those EAS values (`--environment production`), never your local
+   `.env`, so an update can't push the test key to phones.
 4. Play Console: a **privacy policy URL** (the app collects survey answers, contact details for follow-up,
    receipt photos, and push tokens), the **Data safety** form to match, content rating, and target audience.
 5. Personal developer accounts made after Nov 2023 must run a **closed test with 12+ testers for 14 days**
