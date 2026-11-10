@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable, Linking } from 'react-native';
 import Text from './Text';
-import { ORG } from '../config/org';
+import { ORG, websiteUrl } from '../config/org';
 import { useAuth } from '../context/AuthContext';
 import { brand, spacing } from '../theme/tokens';
 
@@ -54,6 +54,7 @@ export default function PublicFooter({ navigation }) {
       <View style={{ marginTop: spacing.xl, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: '#4A433E' }}>
         <Text style={{ color: '#CFC8BF', fontSize: 16 }}>Food is a human right.</Text>
         <FooterLink title="Notifications" onPress={() => navigation.navigate('Notifications')} />
+        <FooterLink title="Privacy policy" url={`${websiteUrl}/privacy`} />
         {!user && <FooterLink title="Staff & volunteer log in" onPress={() => navigation.navigate('Login')} />}
       </View>
     </View>

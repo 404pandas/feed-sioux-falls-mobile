@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "build:android": "eas build --platform android --profile preview",
     "build:ios": "eas build --platform ios --profile preview",
-    "update": "eas update --channel production",
+    "update": "eas update --channel production --environment production",
     "build:play": "eas build --platform android --profile production"
   },
   "dependencies": {

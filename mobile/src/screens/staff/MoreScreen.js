@@ -82,6 +82,7 @@ export default function MoreScreen({ navigation }) {
       <Row icon="bell" title="Notifications" sub="What this phone gets, and privacy" onPress={() => navigation.navigate('Notifications')} />
       <Group title="Public" />
       <Row icon="globe" title="Public website" sub="What neighbors see" onPress={() => navigation.navigate('PublicHome')} />
+      <Row icon="shield" title="Privacy policy" sub="What we collect and share - opens your browser" onPress={() => Linking.openURL(`${websiteUrl}/privacy`)} />
       <View style={{ height: spacing.lg }} />
       <Row icon="logout" title="Log out" onPress={confirmLogout} danger />
     </Screen>
